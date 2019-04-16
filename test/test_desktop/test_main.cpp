@@ -1,0 +1,19 @@
+#include "EmbeddedThings/test_desktop/test_main.h"
+#include <unity.h>
+
+void setUp(void) {
+    // set stuff up here
+}
+
+void tearDown(void) {
+    // clean stuff up here
+}
+
+void process() {
+    Test_Things::test_all();
+}
+
+int main(int argc, char **argv) {
+    process();
+    return 0;
+}
