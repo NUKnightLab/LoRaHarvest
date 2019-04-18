@@ -1,0 +1,1 @@
+See README in `lib/test/ExampleThings/test_common_alt`

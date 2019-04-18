@@ -11,10 +11,10 @@
 
 
 /**
- * Everything under lib should be included here so it can be found by unit
- * testing. Alternatively, these could be included as lib_deps in the
- * platformio.ini, however this will result in a "not been found in PlatformIO
- * Registry" warning for the internal libraries.
+ * Everything under lib that you plan to test should be included here so it
+ * can be found by unit testing. Alternatively, these could be included as
+ * lib_deps in the platformio.ini, however this will result in a "not been
+ * found in PlatformIO Registry" warning for the internal libraries.
  */
 #include <ExampleThings.h>
 

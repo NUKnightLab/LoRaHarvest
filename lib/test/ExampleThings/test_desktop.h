@@ -5,8 +5,8 @@
  * test_desktop.cpp be deleted along with any relevant `test_ignore` references in platform.ini.
  */
 
-#ifndef TEST_DESKTOP_MAIN_H
-#define TEST_DESKTOP_MAIN_H
+#ifndef TEST_DESKTOP_H
+#define TEST_DESKTOP_H
 
 namespace Test_DesktopThings {
     void test_all();
