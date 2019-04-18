@@ -1,5 +1,6 @@
 #include "EmbeddedThings/test_embedded/test_main.h"
 #include <unity.h>
+#include <console.h>
 
 void setUp(void) {
     // set stuff up here
@@ -17,6 +18,10 @@ void process() {
 
 #include <Arduino.h>
 void setup() {
+    while (!Serial);
+    //Serial.begin(115200);
+    //Serial.print("** test_embedded is setup");
+    print("test_embedded is setup. Running tests ..");
     process();
 }
 

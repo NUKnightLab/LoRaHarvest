@@ -18,6 +18,8 @@
  */
 #include <EmbeddedThings.h>
 
+#ifndef UNIT_TEST
+
 #ifdef ARDUINO
 
 #include <Arduino.h>
@@ -33,4 +35,5 @@ int main(int argc, char **argv) {
     return 0;
 }
 
+#endif
 #endif

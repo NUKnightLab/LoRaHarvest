@@ -1,6 +1,7 @@
 #include <unity.h>
 #include <EmbeddedThings.h>
 #include <stdio.h>
+#include "test_main.h"
 
 Thing1 thing1;
 Thing2 thing2;
