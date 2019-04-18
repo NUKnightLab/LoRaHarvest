@@ -1,4 +1,4 @@
-#include "EmbeddedThings/test_common/test_main.h"
+#include "ExampleThings/test_common.h"
 #include <unity.h> // This include is needed or the setUp and tearDown will not be called
 #include <console.h>
 
@@ -11,7 +11,7 @@ void tearDown(void) {
 }
 
 void process() {
-    Test_Things::test_all();
+    Test_CommonThings::test_all();
 }
 
 #ifdef ARDUINO
@@ -19,9 +19,7 @@ void process() {
 #include <Arduino.h>
 void setup() {
     while (!Serial);
-    //Serial.begin(115200); // This does not actually seem to be necessary on the Feather M0 which
-                          // prints output without this line, and unfortunatley it is not helping
-                          // us any on the Uno for getting the Serial output working
+    //Serial.begin(115200);
     println("test_common is setup. Running tests ..");
     process();
 }

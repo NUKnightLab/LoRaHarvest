@@ -1,4 +1,4 @@
-#include "EmbeddedThings/test_desktop/test_main.h"
+#include "ExampleThings/test_desktop.h"
 #include <unity.h>
 
 void setUp(void) {
@@ -10,7 +10,7 @@ void tearDown(void) {
 }
 
 void process() {
-    Test_Things::test_all();
+    Test_DesktopThings::test_all();
 }
 
 int main(int argc, char **argv) {

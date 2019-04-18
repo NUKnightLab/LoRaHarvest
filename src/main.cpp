@@ -16,7 +16,7 @@
  * platformio.ini, however this will result in a "not been found in PlatformIO
  * Registry" warning for the internal libraries.
  */
-#include <EmbeddedThings.h>
+#include <ExampleThings.h>
 
 #ifndef UNIT_TEST
 

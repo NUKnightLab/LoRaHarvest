@@ -1,4 +1,4 @@
-#include "EmbeddedThings/test_embedded/test_main.h"
+#include "ExampleThings/test_embedded.h"
 #include <unity.h>
 #include <console.h>
 
@@ -11,7 +11,7 @@ void tearDown(void) {
 }
 
 void process() {
-    Test_Things::test_all();
+    Test_EmbeddedThings::test_all();
 }
 
 #ifdef ARDUINO
@@ -20,7 +20,6 @@ void process() {
 void setup() {
     while (!Serial);
     //Serial.begin(115200);
-    //Serial.print("** test_embedded is setup");
     print("test_embedded is setup. Running tests ..");
     process();
 }
