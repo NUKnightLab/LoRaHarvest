@@ -87,3 +87,7 @@ Clone this repository, open it in PlatformIO and run the tests:
 I recommend running specific test targets. Run `test -e native` through most
 of your development cycles while you are working through the logic of your
 code, then run `test` or embedded-specific targets for occasional sanity checks.
+
+You may need to add your device to platformio.ini. I have included the Uno and
+the Adafruit Feather M0 because this is what I have access to and work with. I
+will probably add in the Feather 32u4 soon as well.
