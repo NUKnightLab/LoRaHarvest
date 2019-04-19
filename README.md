@@ -87,6 +87,13 @@ Fork or copy this repository, open it in PlatformIO and run the tests:
 I recommend running specific test targets. Run `test -e native` through most
 of your development cycles while you are working through the logic of your
 code, then run `test` or embedded-specific targets for occasional sanity checks.
+As described above, some of your tests will be embedded-specific which, in my
+opinion, is okay. PlatformIO gives you good tools for running embedded tests.
+
+Note: While desktop tests are provided for completeness, it seems unlikely that
+most projects will need them. Unless you are building accompanying tools that
+are desktop specific, your native tests will probably go into common so that
+they get executed on embedded targets also.
 
 You may need to add your device to platformio.ini. I have included the Uno and
 the Adafruit Feather M0 because this is what I have access to and work with. I
