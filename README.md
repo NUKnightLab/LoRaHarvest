@@ -47,10 +47,10 @@ config file from an SD card that you wish to use with maybe an Arduino SD
 shield, or with an Adalogger Feather Wing.
 
 In this scenario, consider abstracting any of the logical aspects of the code,
-(e.g. th interpolation of config strings) from the SD card specific aspects
-of the code (e.g. read & write functions). The former would be tested with
-common tests, while the latter, which depnds on an actual SD card reader, would
-be tested in the embedded tests.
+(e.g. the interpolation of config strings into typed values) from the SD card
+specific aspects of the code (e.g. read & write functions). The former would be
+tested with common tests, while the latter, which depnds on an actual SD card
+reader, would be tested in the embedded tests.
 
 ## print and println
 
