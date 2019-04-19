@@ -52,10 +52,17 @@ of the code (e.g. read & write functions). The former would be tested with
 common tests, while the latter, which depnds on an actual SD card reader, would
 be tested in the embedded tests.
 
-A common set of print / println functions are provided. This should greatly
-facilitate the ability to write code that will run natively. Instead of
-`Serial.print` and `Serial.println` use these provided functions which work
-across runtime targets.
+## print and println
+
+A common set of print / println functions are provided in the Console library.
+This should greatly facilitate the ability to write code that will run both
+natively and embedded. Instead of `Serial.print` and `Serial.println` use these
+provided functions which work across runtime targets.
+
+This project example is littered with a handful of print statements that are
+there mostly for demonstration purposes. In reality, you would not rely so
+much on print statements during coding.
+
 
 ## Much ado about "unit testing"
 
@@ -88,7 +95,8 @@ I recommend running specific test targets. Run `test -e native` through most
 of your development cycles while you are working through the logic of your
 code, then run `test` or embedded-specific targets for occasional sanity checks.
 As described above, some of your tests will be embedded-specific which, in my
-opinion, is okay. PlatformIO gives you good tools for running embedded tests.
+opinion, is okay and is what PlatformIO's testing resources are designed to do.
+PlatformIO gives you good tools for running embedded tests; use them.
 
 Note: While desktop tests are provided for completeness, it seems unlikely that
 most projects will need them. Unless you are building accompanying tools that
