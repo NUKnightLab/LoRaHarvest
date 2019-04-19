@@ -98,3 +98,33 @@ they get executed on embedded targets also.
 You may need to add your device to platformio.ini. I have included the Uno and
 the Adafruit Feather M0 because this is what I have access to and work with. I
 will probably add in the Feather 32u4 soon as well.
+
+## Non-library projects
+
+The structure here is library-centric to encourage modular design and because
+setting up a library project is less intuitive than getting started on a main
+project.
+
+If you are creating a main runtime project, simply build out that code in the
+src directory with main.cpp. I would still recommend identifying functional
+areas of your code that you can factor into lib. Tests for main program code
+would likely be organized under the main test folder rather than the lib
+test folder.
+
+## Arduino IDE compatibility?
+
+Note that if you want Arduino IDE compatibility, rather than a main.cpp, you
+would have an .ino file that is named the same as this project. PlatformIO will
+automatically convert this to a .cpp file during compilation.
+
+For example, we might have `src/EmbeddedProject/EmbeddedProject.ino` then in
+the platformio.ini file under the `[platformio]` config section:
+`src_dir = EmbeddedProject`. In this way, you could also have multiple
+related projects that you target by modifying the src_dir parameter as
+needed.
+
+Please note, I have not actually tested this in the Arduino IDE. There is the
+obvious caveat that you don't really have access to the unit testing setup
+in the Arduino IDE, or anything that is not PlatformIO. Thus I recommend one of
+the several PlatformIO approaches for development (VS Code, Atom, and
+command-line are all options).
