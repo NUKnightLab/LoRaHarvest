@@ -74,7 +74,7 @@ sense to do so.
 
 ## Usage
 
-Clone this repository, open it in PlatformIO and run the tests:
+Fork or copy this repository, open it in PlatformIO and run the tests:
 
 ```
   $ cd EmbeddedProject
