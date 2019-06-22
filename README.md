@@ -56,3 +56,10 @@ simple as possible. Protocol complexities and related code complexities have
 led to numerous headaches in previous approaches. Our hope with this is that the
 simplicity of the protocol leads not only to more stable communications, but
 also results in simpler code that will be easier to test and to debug.
+
+Our principles are summarized below:
+
+ * stability/lowered-contention > short-term communications efficiency
+ * long-term energy efficiency > low-latency
+ * configuration > uncertainty
+ * collector configuration > sensor-node configuration
