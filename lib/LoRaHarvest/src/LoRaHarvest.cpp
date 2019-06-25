@@ -98,15 +98,15 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     #ifdef ARDUINO
     LoRa.idle();
     LoRa.beginPacket();
-    int replyTo = 0;
+    int replyTo = 255;
     for (size_t i=0; i<route_size; i++) {
         if (route[i] == NODE_ID) {
             replyTo = route[i+1];
         }
     }
-    if (replyTo == 0) {
-        println("ERROR: NO ROUTE!");
-    }
+    //if (replyTo == 0) {
+    //    println("ERROR: NO ROUTE!");
+    //}
     LoRa.write(replyTo);                  // to
     LoRa.write(NODE_ID);                  // from
     LoRa.write(dest);                     // dest
@@ -144,7 +144,12 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
     } else if (dest == 255) { // broadcast message
         switch (packetType) {
             case PACKET_TYPE_STANDBY:
-                standby(0); // TODO: get the timeout from the message
+                if (NODE_ID != 1) {
+                    // TODO: explcitly check if this is a collector
+                    println("REC'd BROADCAST STANDBY FOR: %d", message[0]);
+                    routeMessage(255, last_seq, PACKET_TYPE_STANDBY, route, route_size, message, msg_size);
+                    standby(0); // TODO: get the timeout from the message
+                }
                 return MESSAGE_CODE_STANDBY;
         }
     } else { // route this message

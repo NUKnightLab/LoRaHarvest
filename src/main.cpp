@@ -85,6 +85,18 @@ void loop() {
             LoRa.receive();
             delay(3000);
         }
+        Serial.println("Sending broadcast standby");
+        LoRa.idle();
+        LoRa.beginPacket();
+        LoRa.write(255);
+        LoRa.write(NODE_ID);
+        LoRa.write(255);
+        LoRa.write(++++seq);
+        LoRa.write(PACKET_TYPE_STANDBY);
+        LoRa.write(0);
+        LoRa.write(20); // 20 seconds
+        LoRa.endPacket();
+        LoRa.receive();
     }
 }
 
