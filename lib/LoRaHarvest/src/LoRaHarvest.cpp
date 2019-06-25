@@ -53,6 +53,10 @@ float batteryLevel()
 void sendNextDataPacket(int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
+    println("SEND NEXT DATA PACKET");
+    print("REV rOUTE:");
+    for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
+    println("");
     uint8_t bat = (uint8_t)nearbyintf(batteryLevel() * 10);
     uint8_t message[1] = { bat }; // TODO: get the real data
     LoRa.idle();
@@ -154,6 +158,8 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
 
 void onReceive(int packetSize)
 {
+    println("RECEIVED A PACKET");
+
     static uint8_t route_buffer[10];
     static uint8_t msg_buffer[255];
     int to = LoRa.read();
@@ -163,15 +169,21 @@ void onReceive(int packetSize)
     int type = LoRa.read();
     size_t route_idx_ = 0;
     size_t msg_idx_ = 0;
+    println("TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d", to, from, dest, seq, type);
+    print("ROUTE:");
     while (LoRa.available()) {
-       route_buffer[route_idx_++] = LoRa.read();
-       if (route_buffer[route_idx_-1] == 0) break;
+        uint8_t node = LoRa.read();
+        if (node == 0) break;
+        route_buffer[route_idx_++] = node;
+        print(" %d", route_buffer[route_idx_-1]);
     }
+    println("");
     //uint8_t route[idx_];
     //memcpy(route, route_buffer, idx_*sizeof(uint8_t));
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }
+    println("HANDLE PACKET");
     //uint8_t msg[idx_];
     //memcpy(msg, msg_buffer, idx_*sizeof(uint8_t));
     handlePacket(to, from, dest, seq, type, route_buffer, route_idx_, msg_buffer, msg_idx_);

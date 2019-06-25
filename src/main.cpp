@@ -22,14 +22,14 @@
 
 #ifdef ARDUINO
 
-uint8_t nodes[1] = { 2 };
+uint8_t nodes[2] = { 2, 3 };
 uint8_t routes[255][5] = {
     { 0 },
     { 0 },
-    { 2 },
-    { 2, 3 },
-    { 2, 3, 4 },
-    { 2, 3, 5 }
+    { 1, 2 },
+    { 1, 2, 3 },
+    { 1, 2, 3, 4 },
+    { 1, 2, 3, 5 }
 };
 
 #include <Arduino.h>
@@ -62,14 +62,25 @@ void loop() {
         for (int i=0; i<sizeof(nodes); i++) {
             uint8_t node_id = nodes[i];
             uint8_t *route = routes[node_id];
+            uint8_t route_size = 0;
+            while (route_size < sizeof(route) && route[route_size] > 0) route_size++;
+            Serial.print("Fetching data from: ");
+            Serial.print(node_id);
+            Serial.print("; ROUTE: ");
+            for (int j=0; j<route_size; j++) {
+                Serial.print(route[j]);
+                Serial.print(" ");
+            }
+            Serial.println("");
             LoRa.idle();
             LoRa.beginPacket();
-            LoRa.write(route[0]);
+            LoRa.write(route[1]);
             LoRa.write(NODE_ID);
             LoRa.write(node_id);
             LoRa.write(++++seq);
             LoRa.write(PACKET_TYPE_SENDDATA);
-            LoRa.write(route, sizeof(route));
+            LoRa.write(route, route_size);
+            LoRa.write(0);
             LoRa.endPacket();
             LoRa.receive();
             delay(3000);
