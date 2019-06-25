@@ -47,10 +47,10 @@ void onReceive(int packetSize);
 void setupLoRa(int csPin, int resetPin, int irqPin);
 void standby(uint32_t timeout);
 void sendNextDataPacket(int seq, uint8_t *reversedRoute);
-void handleDataMessage(uint8_t *message);
+void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size);
 bool topologyTest(int config, int to, int from);
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, int topology=0);
-void routeMessage(int dest, int seq, int packetType, uint8_t *route, uint8_t *message);
+int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology=0);
+void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size);
 
 #endif
 

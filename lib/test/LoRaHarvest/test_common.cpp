@@ -53,10 +53,10 @@ namespace Test_CommonThings {
         uint8_t *message;
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_STANDBY,
-            handlePacket(to, from, dest, ++sequence, type, route, 0, message));
+            handlePacket(to, from, dest, ++sequence, type, route, 0, message, 0));
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_STANDBY,
-            handlePacket(255, from, 255, ++sequence, type, route, 0, message));
+            handlePacket(255, from, 255, ++sequence, type, route, 0, message, 0));
     }
 
     /**

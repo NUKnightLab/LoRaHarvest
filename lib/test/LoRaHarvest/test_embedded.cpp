@@ -22,23 +22,23 @@ namespace Test_EmbeddedThings {
         uint8_t *message;
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_SENT_NEXT_DATA_PACKET,
-            handlePacket(to, from, dest, ++++sequence, type, route, 2, message));
+            handlePacket(to, from, dest, ++++sequence, type, route, 2, message, 0));
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_DUPLICATE_SEQUENCE,
-            handlePacket(to, from, dest, ++sequence, type, route, 2, message));
+            handlePacket(to, from, dest, ++sequence, type, route, 2, message, 0));
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_WRONG_ADDRESS,
-            handlePacket(to+1, from, dest, ++sequence, type, route, 2, message));
+            handlePacket(to+1, from, dest, ++sequence, type, route, 2, message, 0));
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_SENT_NEXT_DATA_PACKET,
-            handlePacket(255, from, dest, ++++sequence, type, route, 2, message));
+            handlePacket(255, from, dest, ++++sequence, type, route, 2, message, 0));
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_NONE,
-            handlePacket(255, from, 255, ++++sequence, type, route, 2, message));
+            handlePacket(255, from, 255, ++++sequence, type, route, 2, message, 0));
         uint8_t route_multi[3] = { NODE_ID+2, NODE_ID+1, NODE_ID };
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_SENT_NEXT_DATA_PACKET,
-            handlePacket(255, from, dest, ++++sequence, type, route_multi, 3, message));
+            handlePacket(255, from, dest, ++++sequence, type, route_multi, 3, message, 0));
     }
 
     void test_handlePacket_ROUTE(void) {
@@ -50,7 +50,7 @@ namespace Test_EmbeddedThings {
         uint8_t *message;
         TEST_ASSERT_EQUAL(
             MESSAGE_CODE_ROUTED,
-            handlePacket(to, from, dest, ++++sequence, type, route, 3, message));
+            handlePacket(to, from, dest, ++++sequence, type, route, 3, message, 0));
     }
 
     void test_all() {

@@ -36,10 +36,25 @@ void standby(uint32_t timeout)
 
 }
 
+#define VBATPIN 9
+
+float batteryLevel()
+{
+    float val = 0.0;
+    #ifdef ARDUINO
+    val = analogRead(VBATPIN);
+    val *= 2;    // we divided by 2, so multiply back
+    val *= 3.3;  // Multiply by 3.3V, our reference voltage
+    val /= 1024; // convert to voltage
+    #endif
+    return val;
+}
+
 void sendNextDataPacket(int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
-    uint8_t message[3] = { 1, 2, 3 }; // TODO: get the real data
+    uint8_t bat = (uint8_t)nearbyintf(batteryLevel() * 10);
+    uint8_t message[1] = { bat }; // TODO: get the real data
     LoRa.idle();
     LoRa.beginPacket();
     println("writing TO: %d", reversedRoute[route_size-2]);
@@ -68,18 +83,18 @@ void sendNextDataPacket(int seq, uint8_t *reversedRoute, size_t route_size)
     #endif
 }
 
-void handleDataMessage(uint8_t *message)
+void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
 {
-
+    println("NODE: %d; BAT: %f", from_node, message[0] / 10);
 }
 
-void routeMessage(int dest, int seq, int packetType, uint8_t *route, uint8_t *message)
+void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size)
 {
     #ifdef ARDUINO
     LoRa.idle();
     LoRa.beginPacket();
     int replyTo = 0;
-    for (size_t i=0; i<sizeof(route)-1; i++) {
+    for (size_t i=0; i<route_size; i++) {
         if (route[i] == NODE_ID) {
             replyTo = route[i+1];
         }
@@ -92,15 +107,15 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, uint8_t *me
     LoRa.write(dest);                     // dest
     LoRa.write(seq);                      // seq
     LoRa.write(packetType);               // type
-    LoRa.write(route, sizeof(route));     // route
+    LoRa.write(route, route_size);     // route
     LoRa.write(0);                        // end-route
-    LoRa.write(message, sizeof(message)); // message
+    LoRa.write(message, msg_size); // message
     LoRa.endPacket();
     LoRa.receive();
     #endif
 }
 
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, int topology)
+int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
 {
     static int last_seq = 0;
     if (seq == last_seq) {
@@ -110,23 +125,15 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
     if (dest == NODE_ID) {
-        println("dest is NODE_ID");
         switch (packetType) {
             case PACKET_TYPE_SENDDATA:
-                println("sending dta packet");
-                println("route size: %d", route_size);
                 sendNextDataPacket(++last_seq, route, route_size); // TODO: get packet # request from message
-                println(".. sent");
                 return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
             case PACKET_TYPE_DATA:
-                println("handling data message");
-                handleDataMessage(message);
-                println(".. handled");
+                handleDataMessage(route[0], message, msg_size);
                 return MESSAGE_CODE_RECEIVED_DATA_PACKET;
             case PACKET_TYPE_STANDBY: // in practice, this code will be broadcast, not addressed
-                println("standing by");
                 standby(0); // TODO: get the timeout from the message
-                println(".. done");
                 return MESSAGE_CODE_STANDBY;
         }
     } else if (dest == 255) { // broadcast message
@@ -136,7 +143,7 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
                 return MESSAGE_CODE_STANDBY;
         }
     } else { // route this message
-        routeMessage(dest, last_seq, packetType, route, message);
+        routeMessage(dest, last_seq, packetType, route, route_size, message, msg_size);
         return MESSAGE_CODE_ROUTED;
     }
     return MESSAGE_CODE_NONE;
@@ -167,7 +174,7 @@ void onReceive(int packetSize)
     }
     //uint8_t msg[idx_];
     //memcpy(msg, msg_buffer, idx_*sizeof(uint8_t));
-    handlePacket(to, from, dest, seq, type, route_buffer, route_idx_, msg_buffer);
+    handlePacket(to, from, dest, seq, type, route_buffer, route_idx_, msg_buffer, msg_idx_);
 }
 
 void setupLoRa(int csPin, int resetPin, int irqPin)
