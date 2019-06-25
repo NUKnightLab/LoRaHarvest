@@ -41,7 +41,7 @@ const int MESSAGE_CODE_RECEIVED_DATA_PACKET = 5;
 const int MESSAGE_CODE_STANDBY = 6;
 const int MESSAGE_CODE_ROUTED = 7;
 
-const int NODE_ID = 3;
+const int NODE_ID = 1;
 
 void onReceive(int packetSize);
 void setupLoRa(int csPin, int resetPin, int irqPin);

@@ -22,7 +22,7 @@
 
 #ifdef ARDUINO
 
-uint8_t nodes[2] = { 2, 3 };
+uint8_t nodes[3] = { 2, 3, 4 };
 uint8_t routes[255][5] = {
     { 0 },
     { 0 },

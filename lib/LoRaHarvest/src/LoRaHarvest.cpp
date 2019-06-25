@@ -159,8 +159,6 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
 
 void onReceive(int packetSize)
 {
-    println("RECEIVED A PACKET");
-
     static uint8_t route_buffer[10];
     static uint8_t msg_buffer[255];
     int to = LoRa.read();
@@ -170,8 +168,8 @@ void onReceive(int packetSize)
     int type = LoRa.read();
     size_t route_idx_ = 0;
     size_t msg_idx_ = 0;
-    println("TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d", to, from, dest, seq, type);
-    print("ROUTE:");
+    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d", to, from, dest, seq, type);
+    print("; ROUTE:");
     while (LoRa.available()) {
         uint8_t node = LoRa.read();
         if (node == 0) break;
@@ -179,14 +177,9 @@ void onReceive(int packetSize)
         print(" %d", route_buffer[route_idx_-1]);
     }
     println("");
-    //uint8_t route[idx_];
-    //memcpy(route, route_buffer, idx_*sizeof(uint8_t));
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }
-    println("HANDLE PACKET");
-    //uint8_t msg[idx_];
-    //memcpy(msg, msg_buffer, idx_*sizeof(uint8_t));
     handlePacket(to, from, dest, seq, type, route_buffer, route_idx_, msg_buffer, msg_idx_);
 }
 
