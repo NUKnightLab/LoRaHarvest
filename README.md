@@ -63,3 +63,17 @@ Our principles are summarized below:
  * long-term energy efficiency > low-latency
  * configuration > uncertainty
  * collector configuration > sensor-node configuration
+
+
+## Development
+
+Clone arduino-LoRa into the lib directory (https://github.com/sandeepmistry/arduino-LoRa)
+   or otherwise place it on your path
+
+Run tests by target:
+
+```
+  $ pio test -e native
+  $ pio test -e adafruit_feather_m0
+  $ pio test
+```

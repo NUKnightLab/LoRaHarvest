@@ -1,4 +1,4 @@
-#include "ExampleThings/test_desktop.h"
+#include "LoRaHarvest/test_desktop.h"
 #include <unity.h>
 
 void setUp(void) {

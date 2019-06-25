@@ -1,13 +1,15 @@
-#include "ExampleThings/test_embedded.h"
+#include "LoRaHarvest/test_embedded.h"
+#include <LoRaHarvest.h>
 #include <unity.h>
 #include <console.h>
 
 void setUp(void) {
-    // set stuff up here
+    setupLoRa(LORA_CS, LORA_RST, LORA_IRQ);
 }
 
 void tearDown(void) {
     // clean stuff up here
+    LoRa.end();
 }
 
 void process() {

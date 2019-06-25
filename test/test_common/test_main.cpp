@@ -1,4 +1,4 @@
-#include "ExampleThings/test_common.h"
+#include "LoRaHarvest/test_common.h"
 #include <unity.h> // This include is needed or the setUp and tearDown will not be called
 #include <console.h>
 

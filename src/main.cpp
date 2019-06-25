@@ -16,7 +16,7 @@
  * lib_deps in the platformio.ini, however this will result in a "not been
  * found in PlatformIO Registry" warning for the internal libraries.
  */
-#include <ExampleThings.h>
+#include <LoRaHarvest.h>
 
 #ifndef UNIT_TEST
 
