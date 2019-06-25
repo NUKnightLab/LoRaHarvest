@@ -36,24 +36,35 @@ void standby(uint32_t timeout)
 
 }
 
-void sendNextDataPacket(int seq, uint8_t *reversedRoute)
+void sendNextDataPacket(int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
     uint8_t message[3] = { 1, 2, 3 }; // TODO: get the real data
     LoRa.idle();
     LoRa.beginPacket();
-    LoRa.write(reversedRoute[sizeof(reversedRoute)-2]);
+    println("writing TO: %d", reversedRoute[route_size-2]);
+    LoRa.write(reversedRoute[route_size-2]);
+    println("writing FROM: %d", NODE_ID);
     LoRa.write(NODE_ID);
+    println("writing DEST: %d", reversedRoute[0]);
     LoRa.write(reversedRoute[0]);
+    println("writing SEQ: %d", seq);
     LoRa.write(seq);
+    println("writing TYPE: %d", PACKET_TYPE_DATA);
     LoRa.write(PACKET_TYPE_DATA);
-    for (size_t i=sizeof(reversedRoute)-1; i>=0; i--) {
+    println("SIZEOF REVERSED ROUTE: %d", route_size);
+    for (size_t i=route_size; i-- > 0;) {
+        println("ROUTE: %d", reversedRoute[i]);
         LoRa.write(reversedRoute[i]);
     }
+    println("ZERO");
     LoRa.write(0);
+    println("Message");
     LoRa.write(message, sizeof(message));
     LoRa.endPacket();
+    println(".. DONE");
     LoRa.receive();
+    println("RECEIVING");
     #endif
 }
 
@@ -89,7 +100,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, uint8_t *me
     #endif
 }
 
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, uint8_t *message, int topology)
+int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, int topology)
 {
     static int last_seq = 0;
     if (seq == last_seq) {
@@ -99,15 +110,23 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
     if (dest == NODE_ID) {
+        println("dest is NODE_ID");
         switch (packetType) {
             case PACKET_TYPE_SENDDATA:
-                sendNextDataPacket(++last_seq, route); // TODO: get packet # request from message
+                println("sending dta packet");
+                println("route size: %d", route_size);
+                sendNextDataPacket(++last_seq, route, route_size); // TODO: get packet # request from message
+                println(".. sent");
                 return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
             case PACKET_TYPE_DATA:
+                println("handling data message");
                 handleDataMessage(message);
+                println(".. handled");
                 return MESSAGE_CODE_RECEIVED_DATA_PACKET;
             case PACKET_TYPE_STANDBY: // in practice, this code will be broadcast, not addressed
+                println("standing by");
                 standby(0); // TODO: get the timeout from the message
+                println(".. done");
                 return MESSAGE_CODE_STANDBY;
         }
     } else if (dest == 255) { // broadcast message
@@ -135,20 +154,20 @@ void onReceive(int packetSize)
     int dest = LoRa.read();
     int seq = LoRa.read();
     int type = LoRa.read();
-    int idx_ = 0;
+    size_t route_idx_ = 0;
+    size_t msg_idx_ = 0;
     while (LoRa.available()) {
-       route_buffer[idx_++] = LoRa.read();
-       if (route_buffer[idx_-1] == 0) break;
+       route_buffer[route_idx_++] = LoRa.read();
+       if (route_buffer[route_idx_-1] == 0) break;
     }
-    uint8_t route[idx_];
-    memcpy(route, route_buffer, idx_*sizeof(uint8_t));
-    idx_ = 0;
+    //uint8_t route[idx_];
+    //memcpy(route, route_buffer, idx_*sizeof(uint8_t));
     while (LoRa.available()) {
-        msg_buffer[idx_++] = LoRa.read();
+        msg_buffer[msg_idx_++] = LoRa.read();
     }
-    uint8_t msg[idx_];
-    memcpy(msg, msg_buffer, idx_*sizeof(uint8_t));
-    handlePacket(to, from, dest, seq, type, route, msg);
+    //uint8_t msg[idx_];
+    //memcpy(msg, msg_buffer, idx_*sizeof(uint8_t));
+    handlePacket(to, from, dest, seq, type, route_buffer, route_idx_, msg_buffer);
 }
 
 void setupLoRa(int csPin, int resetPin, int irqPin)

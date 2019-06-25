@@ -2,6 +2,7 @@
 #define LORAHARVEST_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef ARDUINO
 #include <LoRa.h>
@@ -48,7 +49,7 @@ void standby(uint32_t timeout);
 void sendNextDataPacket(int seq, uint8_t *reversedRoute);
 void handleDataMessage(uint8_t *message);
 bool topologyTest(int config, int to, int from);
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, uint8_t *message, int topology=0);
+int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, int topology=0);
 void routeMessage(int dest, int seq, int packetType, uint8_t *route, uint8_t *message);
 
 #endif
