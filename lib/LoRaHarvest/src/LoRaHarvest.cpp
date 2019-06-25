@@ -47,6 +47,7 @@ float batteryLevel()
     val *= 3.3;  // Multiply by 3.3V, our reference voltage
     val /= 1024; // convert to voltage
     #endif
+    println("Measured BAT: %f", val);
     return val;
 }
 
@@ -89,7 +90,7 @@ void sendNextDataPacket(int seq, uint8_t *reversedRoute, size_t route_size)
 
 void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
 {
-    println("NODE: %d; BAT: %f", from_node, message[0] / 10);
+    println("NODE: %d; BAT: %f", from_node, (float)message[0] / 10.0);
 }
 
 void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size)
