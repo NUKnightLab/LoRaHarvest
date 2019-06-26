@@ -31,6 +31,51 @@ bool topologyTest(int config, int to, int from)
     return true;
 }
 
+bool _collecting = false;
+bool _waiting_packet = false;
+int _collecting_node_idx = -1;
+uint8_t _collecting_packet = 1;
+
+bool collectingData()
+{
+    return _collecting;
+}
+
+void collectingData(bool val)
+{
+    _collecting = val;
+}
+
+bool waitingPacket()
+{
+    return _waiting_packet;
+}
+
+void waitingPacket(bool val)
+{
+    _waiting_packet = val;
+}
+
+int collectingNodeIndex()
+{
+    return _collecting_node_idx;
+}
+
+void collectingNodeIndex(int idx)
+{
+    _collecting_node_idx = idx;
+}
+
+uint8_t collectingPacketId()
+{
+    return _collecting_packet;
+}
+
+void collectingPacketId(uint8_t val)
+{
+    _collecting_packet = val;
+}
+
 void standby(uint32_t timeout)
 {
 
@@ -51,15 +96,16 @@ float batteryLevel()
     return val;
 }
 
-void sendNextDataPacket(int seq, uint8_t *reversedRoute, size_t route_size)
+void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
-    println("SEND NEXT DATA PACKET");
+    if (packet_id == 0) packet_id = 3;
+    println("SEND DATA PACKET: %d", packet_id);
     print("REV rOUTE:");
     for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
     println("");
     uint8_t bat = (uint8_t)nearbyintf(batteryLevel() * 10);
-    uint8_t message[1] = { bat }; // TODO: get the real data
+    uint8_t message[2] = { packet_id, bat }; // TODO: get the real data
     LoRa.idle();
     LoRa.beginPacket();
     println("writing TO: %d", reversedRoute[route_size-2]);
@@ -90,7 +136,16 @@ void sendNextDataPacket(int seq, uint8_t *reversedRoute, size_t route_size)
 
 void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
 {
-    println("NODE: %d; BAT: %f", from_node, (float)message[0] / 10.0);
+    /**
+     * If we asked for packet 0, then the actual packet we were waiting for is whatever
+     * the node says it is.
+     */
+    println("Collecting packet: %d", collectingPacketId());
+    if (collectingPacketId() == 0) collectingPacketId(message[0]);
+    println("NODE: %d; PACKET: %d; BAT: %f", from_node, message[0], (float)message[1] / 10.0);
+    waitingPacket(false);
+    println("collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
+        collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());
 }
 
 void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size)
@@ -120,6 +175,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     #endif
 }
 
+
 int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
 {
     static int last_seq = 0;
@@ -129,10 +185,12 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
     if (to != NODE_ID && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
+    uint8_t packet_id;
     if (dest == NODE_ID) {
         switch (packetType) {
             case PACKET_TYPE_SENDDATA:
-                sendNextDataPacket(++last_seq, route, route_size); // TODO: get packet # request from message
+                packet_id = message[0];
+                sendDataPacket(packet_id, ++last_seq, route, route_size); // TODO: get packet # request from message
                 return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
             case PACKET_TYPE_DATA:
                 handleDataMessage(route[0], message, msg_size);

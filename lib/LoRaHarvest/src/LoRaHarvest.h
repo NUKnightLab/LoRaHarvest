@@ -43,10 +43,21 @@ const int MESSAGE_CODE_ROUTED = 7;
 
 const int NODE_ID = 1;
 
+/* collecting state management */
+bool collectingData();
+void collectingData(bool val);
+bool waitingPacket();
+void waitingPacket(bool val);
+int collectingNodeIndex();
+void collectingNodeIndex(int idx);
+uint8_t collectingPacketId();
+void collectingPacketId(uint8_t val);
+
+
 void onReceive(int packetSize);
 void setupLoRa(int csPin, int resetPin, int irqPin);
 void standby(uint32_t timeout);
-void sendNextDataPacket(int seq, uint8_t *reversedRoute);
+void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute);
 void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size);
 bool topologyTest(int config, int to, int from);
 int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology=0);

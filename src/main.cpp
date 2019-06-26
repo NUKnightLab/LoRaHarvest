@@ -17,12 +17,13 @@
  * found in PlatformIO Registry" warning for the internal libraries.
  */
 #include <LoRaHarvest.h>
+#include <console.h>
 
 #ifndef UNIT_TEST
 
 #ifdef ARDUINO
 
-uint8_t nodes[3] = { 2, 3, 4 };
+uint8_t nodes[1] = { 2 };
 uint8_t routes[255][5] = {
     { 0 },
     { 0 },
@@ -31,6 +32,7 @@ uint8_t routes[255][5] = {
     { 1, 2, 3, 4 },
     { 1, 2, 3, 5 }
 };
+
 
 #include <Arduino.h>
 
@@ -58,45 +60,59 @@ void setup() {
 
 void loop() {
     static uint8_t seq = 0;
-    if (NODE_ID == 1 && runEvery(30000)) {
-        for (int i=0; i<sizeof(nodes); i++) {
-            uint8_t node_id = nodes[i];
-            uint8_t *route = routes[node_id];
-            uint8_t route_size = 0;
-            while (route_size < sizeof(route) && route[route_size] > 0) route_size++;
-            Serial.print("Fetching data from: ");
-            Serial.print(node_id);
-            Serial.print("; ROUTE: ");
-            for (int j=0; j<route_size; j++) {
-                Serial.print(route[j]);
-                Serial.print(" ");
-            }
-            Serial.println("");
-            LoRa.idle();
-            LoRa.beginPacket();
-            LoRa.write(route[1]);
-            LoRa.write(NODE_ID);
-            LoRa.write(node_id);
-            LoRa.write(++++seq);
-            LoRa.write(PACKET_TYPE_SENDDATA);
-            LoRa.write(route, route_size);
-            LoRa.write(0);
-            LoRa.endPacket();
-            LoRa.receive();
-            delay(3000);
+    if (runEvery(60000)) collectingData(true);
+    if (collectingData() && !waitingPacket()) {
+        collectingPacketId(collectingPacketId() - 1);
+        if (collectingPacketId() == 0) {
+            collectingNodeIndex(collectingNodeIndex() + 1);
         }
-        Serial.println("Sending broadcast standby");
+        if (collectingNodeIndex() >= sizeof(nodes)) {
+            collectingNodeIndex(-1);
+            collectingPacketId(1);
+            collectingData(false);
+            waitingPacket(false);
+            // TODO: send standby
+            return;
+        }
+        println("prefetch collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
+            collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());
+        waitingPacket(true);
+        uint8_t node_id = nodes[collectingNodeIndex()];
+        uint8_t *route = routes[node_id];
+        uint8_t route_size = 0;
+        while (route_size < sizeof(route) && route[route_size] > 0) route_size++;
+        Serial.print("Fetching data from: ");
+        Serial.print(node_id);
+        Serial.print("; ROUTE: ");
+        for (int j=0; j<route_size; j++) {
+            Serial.print(route[j]);
+            Serial.print(" ");
+        }
+        Serial.println("");
         LoRa.idle();
         LoRa.beginPacket();
-        LoRa.write(255);
+        LoRa.write(route[1]);
         LoRa.write(NODE_ID);
-        LoRa.write(255);
+        LoRa.write(node_id);
         LoRa.write(++++seq);
-        LoRa.write(PACKET_TYPE_STANDBY);
-        LoRa.write(0);
-        LoRa.write(20); // 20 seconds
+        LoRa.write(PACKET_TYPE_SENDDATA);
+        LoRa.write(route, route_size);
+        LoRa.write(0); // end route
+        LoRa.write(collectingPacketId()); // packet id
         LoRa.endPacket();
         LoRa.receive();
+        //Serial.println("Sending broadcast standby");
+        //LoRa.idle();
+        //LoRa.beginPacket();
+        //LoRa.write(255);
+        //LoRa.write(NODE_ID);
+        //LoRa.write(255);
+        //LoRa.write(++++seq);
+        //LoRa.write(PACKET_TYPE_STANDBY);
+        //LoRa.write(0);
+        //LoRa.write(20); // 20 seconds
+        //LoRa.endPacket();
+        //LoRa.receive();
     }
 }
 
