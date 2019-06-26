@@ -13,6 +13,7 @@ int Thing2::subtract(int a, int b)
     return a - b;
 }
 
+
 /**
  * Enforce a particular topology. Used in testing for simulation of signal reach under
  * close-proximity (e.g. benchtop) conditions.
@@ -96,16 +97,33 @@ float batteryLevel()
     return val;
 }
 
+uint8_t battery_samples[255];
+uint32_t battery_timestamps[255];
+uint8_t battery_data_head = 0;
+uint8_t battery_data_index = 0;
+
+void recordBattery()
+{
+    battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);
+    battery_timestamps[battery_data_index] = millis();
+    battery_data_index++;
+}
+
+uint8_t numPackets()
+{
+    return battery_data_index / 10;
+}
+
 void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
-    if (packet_id == 0) packet_id = 3;
+    if (packet_id == 0) packet_id = numPackets();
     println("SEND DATA PACKET: %d", packet_id);
     print("REV rOUTE:");
     for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
     println("");
-    uint8_t bat = (uint8_t)nearbyintf(batteryLevel() * 10);
-    uint8_t message[2] = { packet_id, bat }; // TODO: get the real data
+    //uint8_t bat = (uint8_t)nearbyintf(batteryLevel() * 10);
+    //uint8_t message[2] = { packet_id, bat }; // TODO: get the real data
     LoRa.idle();
     LoRa.beginPacket();
     println("writing TO: %d", reversedRoute[route_size-2]);
@@ -125,8 +143,16 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     }
     println("ZERO");
     LoRa.write(0);
-    println("Message");
-    LoRa.write(message, sizeof(message));
+    //LoRa.write(message, sizeof(message));
+    LoRa.write(packet_id);
+    uint8_t msg_size = 0;
+    for (;battery_data_head<battery_data_index && msg_size<10; msg_size++) {
+        LoRa.write(battery_samples[battery_data_head++]);
+    }
+    if (battery_data_head >= battery_data_index) {
+        battery_data_head = 0;
+        battery_data_index = 0;
+    }
     LoRa.endPacket();
     println(".. DONE");
     LoRa.receive();
@@ -142,7 +168,11 @@ void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
      */
     println("Collecting packet: %d", collectingPacketId());
     if (collectingPacketId() == 0) collectingPacketId(message[0]);
-    println("NODE: %d; PACKET: %d; BAT: %f", from_node, message[0], (float)message[1] / 10.0);
+    print("NODE: %d; PACKET: %d; BATS:", from_node, message[0]);
+    for (uint8_t i=1; i<msg_size; i++) {
+        print(" %d", (float)message[i] / 10.0);
+    }
+    println("");
     waitingPacket(false);
     println("collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
         collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());

@@ -53,6 +53,7 @@ void collectingNodeIndex(int idx);
 uint8_t collectingPacketId();
 void collectingPacketId(uint8_t val);
 
+void recordBattery();
 
 void onReceive(int packetSize);
 void setupLoRa(int csPin, int resetPin, int irqPin);

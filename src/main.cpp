@@ -23,7 +23,7 @@
 
 #ifdef ARDUINO
 
-uint8_t nodes[1] = { 2 };
+uint8_t nodes[2] = { 2, 3 };
 uint8_t routes[255][5] = {
     { 0 },
     { 0 },
@@ -47,6 +47,17 @@ bool runEvery(unsigned long interval)
     return false;
 }
 
+bool scheduleDataSample(unsigned long interval)
+{
+    static unsigned long previousMillis = 0;
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+        previousMillis = currentMillis;
+        return true;
+    }
+    return false;
+}
+
 void setup() {
     LoRa.setPins(LORA_CS, LORA_RST, LORA_IRQ);
     if (!LoRa.begin(915E6)) {
@@ -60,7 +71,8 @@ void setup() {
 
 void loop() {
     static uint8_t seq = 0;
-    if (runEvery(60000)) collectingData(true);
+    if (NODE_ID == 1 && runEvery(60000)) collectingData(true);
+    if (NODE_ID != 1 && scheduleDataSample(5)) recordBattery();
     if (collectingData() && !waitingPacket()) {
         collectingPacketId(collectingPacketId() - 1);
         if (collectingPacketId() == 0) {
