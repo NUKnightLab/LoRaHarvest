@@ -1,5 +1,7 @@
 #include <LoRaHarvest.h>
 #include <console.h>
+#include <math.h>
+#include <DataManager.h>
 
 int Thing1::add(int a, int b)
 {
@@ -97,27 +99,31 @@ float batteryLevel()
     return val;
 }
 
-uint8_t battery_samples[255];
-uint32_t battery_timestamps[255];
-uint8_t battery_data_head = 0;
-uint8_t battery_data_index = 0;
+uint32_t timestamp()
+{
+    #ifdef ARDUINO
+    return millis();
+    #endif
+    return 0;
+}
+
+//uint8_t battery_samples[255];
+//uint32_t battery_timestamps[255];
+//uint8_t battery_data_head = 0;
+//uint8_t battery_data_index = 0;
 
 void recordBattery()
 {
-    battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);
-    battery_timestamps[battery_data_index] = millis();
-    battery_data_index++;
-}
-
-uint8_t numPackets()
-{
-    return battery_data_index / 10;
+    recordData((uint8_t)nearbyintf(batteryLevel() * 10));
+    //battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);
+    //battery_timestamps[battery_data_index] = timestamp();
+    //battery_data_index++;
 }
 
 void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
-    if (packet_id == 0) packet_id = numPackets();
+    if (packet_id == 0) packet_id = numBatches(10);
     println("SEND DATA PACKET: %d", packet_id);
     print("REV rOUTE:");
     for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
@@ -146,13 +152,21 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     //LoRa.write(message, sizeof(message));
     LoRa.write(packet_id);
     uint8_t msg_size = 0;
-    for (;battery_data_head<battery_data_index && msg_size<10; msg_size++) {
-        LoRa.write(battery_samples[battery_data_head++]);
+    //for (;battery_data_head<battery_data_index && msg_size<10; msg_size++) {
+    //    LoRa.write(battery_samples[battery_data_head++]);
+    //}
+    println("RECEIVED REQUEST FOR PACKET: %d", packet_id);
+    uint8_t batch_size = 10;
+    uint8_t *batch = getBatch(packet_id - 1, &batch_size);
+    println("PACKET Batch size is %d", batch_size);
+    for (uint8_t i=0; i< batch_size; i++) {
+        LoRa.write(batch[i]);
     }
-    if (battery_data_head >= battery_data_index) {
-        battery_data_head = 0;
-        battery_data_index = 0;
-    }
+    //if (battery_data_head >= battery_data_index) {
+    //    battery_data_head = 0;
+    //    battery_data_index = 0;
+    //}
+    if (packet_id == 1) clearData(); // TODO: tunneled ack from collector before clearing
     LoRa.endPacket();
     println(".. DONE");
     LoRa.receive();

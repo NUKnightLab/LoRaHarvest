@@ -23,7 +23,7 @@
 
 #ifdef ARDUINO
 
-uint8_t nodes[2] = { 2, 3 };
+uint8_t nodes[1] = { 2 };
 uint8_t routes[255][5] = {
     { 0 },
     { 0 },
@@ -72,7 +72,7 @@ void setup() {
 void loop() {
     static uint8_t seq = 0;
     if (NODE_ID == 1 && runEvery(60000)) collectingData(true);
-    if (NODE_ID != 1 && scheduleDataSample(5)) recordBattery();
+    if (NODE_ID != 1 && scheduleDataSample(5000)) recordBattery();
     if (collectingData() && !waitingPacket()) {
         collectingPacketId(collectingPacketId() - 1);
         if (collectingPacketId() == 0) {

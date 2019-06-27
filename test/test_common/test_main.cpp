@@ -1,4 +1,5 @@
 #include "LoRaHarvest/test_common.h"
+#include "DataManager/test_datamanager_common.h"
 #include <unity.h> // This include is needed or the setUp and tearDown will not be called
 #include <console.h>
 
@@ -12,6 +13,7 @@ void tearDown(void) {
 
 void process() {
     Test_CommonThings::test_all();
+    Test_DataManagerCommon::test_all();
 }
 
 #ifdef ARDUINO
