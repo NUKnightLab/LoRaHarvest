@@ -184,7 +184,7 @@ void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
     if (collectingPacketId() == 0) collectingPacketId(message[0]);
     print("NODE: %d; PACKET: %d; BATS:", from_node, message[0]);
     for (uint8_t i=1; i<msg_size; i++) {
-        print(" %d", (float)message[i] / 10.0);
+        print(" %f", (float)message[i] / 10.0);
     }
     println("");
     waitingPacket(false);
@@ -275,7 +275,8 @@ void onReceive(int packetSize)
     int type = LoRa.read();
     size_t route_idx_ = 0;
     size_t msg_idx_ = 0;
-    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d", to, from, dest, seq, type);
+    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d",
+        to, from, dest, seq, type, LoRa.packetRssi());
     print("; ROUTE:");
     while (LoRa.available()) {
         uint8_t node = LoRa.read();

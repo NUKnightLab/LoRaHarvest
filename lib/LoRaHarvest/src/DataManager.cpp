@@ -1,4 +1,5 @@
 #include "DataManager.h"
+#include <console.h>
 
 uint8_t _buffer[255];
 uint8_t _index = 0;
@@ -20,12 +21,16 @@ void recordData(uint8_t data)
 
 uint8_t numBatches(uint8_t batch_size)
 {
-    return _index / batch_size + _index % batch_size;
+    uint8_t num = _index / batch_size;
+    if (_index % batch_size > 0) num++;
+    return num;
 }
 
 uint8_t *getBatch(uint8_t batch_no, uint8_t *batch_size)
 {
     uint8_t batch_index = batch_no * *batch_size;
+    println("INDEX: %d; BATCH_INDEX: %d; BATCH_SIZE: %d; NUM_BATCHES: %d",
+        _index, batch_index, *batch_size, numBatches(*batch_size));
     if ( (batch_index + *batch_size) > _index) *batch_size = (_index - batch_index);
     return &_buffer[batch_index];
 }
