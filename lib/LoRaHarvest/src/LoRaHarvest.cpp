@@ -192,6 +192,40 @@ void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
         collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());
 }
 
+void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, uint8_t *message, uint8_t msg_size)
+{
+    #ifdef ARDUINO
+    print("REV rOUTE:");
+    for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
+    println("");
+    LoRa.idle();
+    LoRa.beginPacket();
+    println("writing TO: %d", reversedRoute[route_size-2]);
+    LoRa.write(reversedRoute[route_size-2]);
+    println("writing FROM: %d", NODE_ID);
+    LoRa.write(NODE_ID);
+    println("writing DEST: %d", reversedRoute[0]);
+    LoRa.write(reversedRoute[0]);
+    println("writing SEQ: %d", seq);
+    LoRa.write(seq);
+    println("writing TYPE: %d", PACKET_TYPE_ECHO);
+    LoRa.write(PACKET_TYPE_ECHO);
+    println("SIZEOF REVERSED ROUTE: %d", route_size);
+    for (size_t i=route_size; i-- > 0;) {
+        println("ROUTE: %d", reversedRoute[i]);
+        LoRa.write(reversedRoute[i]);
+    }
+    println("ZERO");
+    LoRa.write(0);
+    println("RECEIVED REQUEST FOR ECHO");
+    LoRa.write(message, msg_size);
+    LoRa.endPacket();
+    println(".. DONE");
+    LoRa.receive();
+    println("RECEIVING");
+    #endif
+}
+
 void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size)
 {
     #ifdef ARDUINO
@@ -242,6 +276,16 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
             case PACKET_TYPE_STANDBY: // in practice, this code will be broadcast, not addressed
                 standby(0); // TODO: get the timeout from the message
                 return MESSAGE_CODE_STANDBY;
+            case PACKET_TYPE_ECHO:
+                if (NODE_ID > 1) {
+                    handleEchoMessage(++last_seq, route, route_size, message, msg_size);
+                } else {
+                    println("MESSAGE:");
+                    for (uint8_t i=0; i<msg_size; i++) {
+                        print("%d ", message[i]);
+                    }
+                    println("");
+                }
         }
     } else if (dest == 255) { // broadcast message
         switch (packetType) {
@@ -285,6 +329,7 @@ void onReceive(int packetSize)
         print(" %d", route_buffer[route_idx_-1]);
     }
     println("");
+    println("SNR: %f; FRQERR: %f", LoRa.packetSnr(), LoRa.packetFrequencyError());
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }

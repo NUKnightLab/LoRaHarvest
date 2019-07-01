@@ -31,6 +31,7 @@ const int TEST_TOPOLOGY_1 = 1; // 1 - 2 - 3
 const int PACKET_TYPE_SENDDATA = 1;
 const int PACKET_TYPE_DATA = 2;
 const int PACKET_TYPE_STANDBY = 3;
+const int PACKET_TYPE_ECHO = 4; // used for testing
 
 const int MESSAGE_CODE_NONE = 0;
 const int MESSAGE_CODE_DUPLICATE_SEQUENCE = 1;

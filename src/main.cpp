@@ -23,14 +23,15 @@
 
 #ifdef ARDUINO
 
-uint8_t nodes[4] = { 2, 3, 4, 5 };
-uint8_t routes[255][5] = {
+uint8_t nodes[5] = { 2, 3, 6, 5, 4 };
+uint8_t routes[255][6] = {
     { 0 },
     { 0 },
     { 1, 2 },
     { 1, 2, 3 },
-    { 1, 2, 3, 4 },
-    { 1, 2, 3, 5 }
+    { 1, 2, 3, 6, 5, 4 },
+    { 1, 3, 6, 5 },
+    { 1, 2, 3, 6 }
 };
 
 
@@ -70,10 +71,26 @@ void setup() {
 }
 
 void loop() {
+    static unsigned long tick_time = 0;
+    if (millis() > tick_time) {
+        print(".");
+        tick_time = millis() + 1000;
+    }
+
+    static unsigned long timeout = 0;
     static uint8_t seq = 0;
     if (NODE_ID == 1 && runEvery(60000)) collectingData(true);
     if (NODE_ID != 1 && scheduleDataSample(5000)) recordBattery();
-    if (collectingData() && !waitingPacket()) {
+    if (collectingData()) {
+        if (waitingPacket()) {
+            if (millis() > timeout) {
+                println("TIMEOUT");
+                collectingNodeIndex(-1);
+                collectingPacketId(1);
+                collectingData(false); // TODO: retry data fetch
+                waitingPacket(false);
+            }
+        } else {
         collectingPacketId(collectingPacketId() - 1);
         if (collectingPacketId() == 0) {
             collectingNodeIndex(collectingNodeIndex() + 1);
@@ -112,6 +129,8 @@ void loop() {
         LoRa.write(0); // end route
         LoRa.write(collectingPacketId()); // packet id
         LoRa.endPacket();
+        timeout = millis() + 10000;
+        println("set timeout to: %d", timeout);
         LoRa.receive();
         //Serial.println("Sending broadcast standby");
         //LoRa.idle();
@@ -125,6 +144,7 @@ void loop() {
         //LoRa.write(20); // 20 seconds
         //LoRa.endPacket();
         //LoRa.receive();
+        }
     }
 }
 

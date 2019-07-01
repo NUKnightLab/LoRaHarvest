@@ -53,11 +53,29 @@ namespace Test_EmbeddedThings {
             handlePacket(to, from, dest, ++++sequence, type, route, 3, message, 0));
     }
 
+    void test_ECHO(void) {
+        int to = 2;
+        int from = 1;
+        int dest = 2;
+        int type = PACKET_TYPE_ECHO;
+        uint8_t route[2] = { 1, 2};
+        uint8_t msg_size = 255;
+        uint8_t message[msg_size];
+        for (uint8_t i=0; i<msg_size; i++) {
+            message[i] = i;
+        }
+        routeMessage(dest, ++++sequence, type, route, sizeof(route), message, sizeof(message));
+        for (int i=0; i<30; i++){
+            delay(100);
+        }
+    }
+
     void test_all() {
         UNITY_BEGIN();
-        RUN_TEST(test_test);
-        RUN_TEST(test_handlePacket_SENDDATA);
-        RUN_TEST(test_handlePacket_ROUTE);
+        //RUN_TEST(test_test);
+        //RUN_TEST(test_handlePacket_SENDDATA);
+        //RUN_TEST(test_handlePacket_ROUTE);
+        RUN_TEST(test_ECHO);
         UNITY_END();
     }
 }
