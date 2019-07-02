@@ -123,7 +123,7 @@ void recordBattery()
 void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
-    if (packet_id == 0) packet_id = numBatches(10);
+    if (packet_id == 0) packet_id = numBatches(MAX_MESSAGE_SIZE);
     println("SEND DATA PACKET: %d", packet_id);
     print("REV rOUTE:");
     for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
@@ -156,7 +156,7 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     //    LoRa.write(battery_samples[battery_data_head++]);
     //}
     println("RECEIVED REQUEST FOR PACKET: %d", packet_id);
-    uint8_t batch_size = 10;
+    uint8_t batch_size = MAX_MESSAGE_SIZE;
     uint8_t *batch = getBatch(packet_id - 1, &batch_size);
     println("PACKET Batch size is %d", batch_size);
     for (uint8_t i=0; i< batch_size; i++) {
@@ -240,6 +240,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     //if (replyTo == 0) {
     //    println("ERROR: NO ROUTE!");
     //}
+    /* 6 bytes + route size + message size */
     LoRa.write(replyTo);                  // to
     LoRa.write(NODE_ID);                  // from
     LoRa.write(dest);                     // dest
@@ -310,7 +311,7 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
 
 void onReceive(int packetSize)
 {
-    static uint8_t route_buffer[10];
+    static uint8_t route_buffer[MAX_ROUTE_SIZE];
     static uint8_t msg_buffer[255];
     int to = LoRa.read();
     int from = LoRa.read();
@@ -343,6 +344,11 @@ void setupLoRa(int csPin, int resetPin, int irqPin)
         println("LoRa init failed.");
         while(true);
     }
+    /**
+     * Sync word settng is not working in the LoRa library. See this issue:
+     * https://github.com/sandeepmistry/arduino-LoRa/issues/16
+     */
+    //LoRa.setSyncWord(SYNC_WORD);
     LoRa.enableCrc();
     LoRa.onReceive(onReceive);
 }

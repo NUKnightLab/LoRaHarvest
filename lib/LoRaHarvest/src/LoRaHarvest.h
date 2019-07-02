@@ -43,6 +43,11 @@ const int MESSAGE_CODE_STANDBY = 6;
 const int MESSAGE_CODE_ROUTED = 7;
 
 const int NODE_ID = 1;
+const int SYNC_WORD = 0x19; // default 0x12. 0x34 is LoRaWAN
+const int MAX_PACKET_SIZE = 255;
+const int MAX_ROUTE_SIZE = 10;
+//const int MAX_MESSAGE_SIZE = MAX_PACKET_SIZE - 6 - MAX_ROUTE_SIZE;
+const int MAX_MESSAGE_SIZE = 100;
 
 /* collecting state management */
 bool collectingData();
