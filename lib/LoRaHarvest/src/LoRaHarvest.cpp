@@ -81,7 +81,9 @@ void collectingPacketId(uint8_t val)
 
 void standby(uint32_t timeout)
 {
-
+    LoRa.sleep();
+    delay(timeout);
+    LoRa.idle();
 }
 
 #define VBATPIN 9
@@ -274,8 +276,8 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
             case PACKET_TYPE_DATA:
                 handleDataMessage(route[0], message, msg_size);
                 return MESSAGE_CODE_RECEIVED_DATA_PACKET;
-            case PACKET_TYPE_STANDBY: // in practice, this code will be broadcast, not addressed
-                standby(0); // TODO: get the timeout from the message
+            case PACKET_TYPE_STANDBY:
+                standby(message[0]); // up to 255 seconds. TODO, use 2 bytes for longer timeouts
                 return MESSAGE_CODE_STANDBY;
             case PACKET_TYPE_ECHO:
                 if (NODE_ID > 1) {
@@ -295,7 +297,7 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
                     // TODO: explcitly check if this is a collector
                     println("REC'd BROADCAST STANDBY FOR: %d", message[0]);
                     routeMessage(255, last_seq, PACKET_TYPE_STANDBY, route, route_size, message, msg_size);
-                    standby(0); // TODO: get the timeout from the message
+                    standby(message[0]);
                 }
                 return MESSAGE_CODE_STANDBY;
         }
