@@ -83,7 +83,7 @@ void standby(uint32_t timeout)
 {
     LoRa.sleep();
     delay(timeout);
-    LoRa.idle();
+    LoRa.receive();
 }
 
 #define VBATPIN 9
