@@ -280,7 +280,7 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
                 standby(message[0]); // up to 255 seconds. TODO, use 2 bytes for longer timeouts
                 return MESSAGE_CODE_STANDBY;
             case PACKET_TYPE_ECHO:
-                if (NODE_ID > 1) {
+                if (!isCollector) {
                     handleEchoMessage(++last_seq, route, route_size, message, msg_size);
                 } else {
                     println("MESSAGE:");
@@ -293,8 +293,7 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
     } else if (dest == 255) { // broadcast message
         switch (packetType) {
             case PACKET_TYPE_STANDBY:
-                if (NODE_ID != 1) {
-                    // TODO: explcitly check if this is a collector
+                if (!isCollector) {
                     println("REC'd BROADCAST STANDBY FOR: %d", message[0]);
                     routeMessage(255, last_seq, PACKET_TYPE_STANDBY, route, route_size, message, msg_size);
                     standby(message[0]);

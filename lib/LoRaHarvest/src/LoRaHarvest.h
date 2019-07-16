@@ -20,6 +20,8 @@ public:
     int subtract (int a, int b);
 };
 
+static bool isCollector = false;
+
 const long frequency = 915E6; // Currently only supporting 915 MHz
 const int LORA_CS = 8; // chip select
 const int LORA_RST = 4; // reset
@@ -42,7 +44,7 @@ const int MESSAGE_CODE_RECEIVED_DATA_PACKET = 5;
 const int MESSAGE_CODE_STANDBY = 6;
 const int MESSAGE_CODE_ROUTED = 7;
 
-const int NODE_ID = 1;
+const int NODE_ID = 2;
 const int SYNC_WORD = 0x19; // default 0x12. 0x34 is LoRaWAN
 const int MAX_PACKET_SIZE = 255;
 const int MAX_ROUTE_SIZE = 10;

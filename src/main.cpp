@@ -67,6 +67,7 @@ bool scheduleDataSample(unsigned long interval)
 }
 
 void setup() {
+    if (NODE_ID == 1) isCollector = true;
     LoRa.setPins(LORA_CS, LORA_RST, LORA_IRQ);
     if (!LoRa.begin(915E6)) {
         Serial.println("LoRa init failed");
@@ -86,8 +87,8 @@ void loop() {
 
     static unsigned long timeout = 0;
     static uint8_t seq = 0;
-    if (NODE_ID == 1 && runEvery()) collectingData(true);
-    if (NODE_ID != 1 && scheduleDataSample(5000)) recordBattery();
+    if (isCollector && runEvery()) collectingData(true);
+    if (!isCollector && scheduleDataSample(5000)) recordBattery();
     if (collectingData()) {
         if (waitingPacket()) {
             if (millis() > timeout) {
