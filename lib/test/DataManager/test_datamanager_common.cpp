@@ -9,6 +9,14 @@ namespace Test_DataManagerCommon {
         clearData();
         recordData(1);
         TEST_ASSERT_EQUAL(1, dataIndex());
+        char data[] = "{\"test\":1.0}";
+        recordData(data, strlen(data));
+        //char *bad_data = "123";
+        //recordData(bad_data, sizeof(bad_data));
+        char *recorded_data = getBatch(0);
+        TEST_ASSERT_EQUAL(strlen(recorded_data), strlen(data));
+        TEST_ASSERT_EQUAL_STRING_LEN(data, recorded_data, strlen(data));
+        TEST_ASSERT_EQUAL_STRING_LEN("{\"test\":1.0}", recorded_data, 12);
     }
 
     void test_numBatches() {
@@ -45,7 +53,7 @@ namespace Test_DataManagerCommon {
 
     void test_all() {
         UNITY_BEGIN();
-        //RUN_TEST(test_recordData);
+        RUN_TEST(test_recordData);
         RUN_TEST(test_numBatches);
         UNITY_END();
     }

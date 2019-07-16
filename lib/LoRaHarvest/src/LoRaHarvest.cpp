@@ -81,9 +81,11 @@ void collectingPacketId(uint8_t val)
 
 void standby(uint32_t timeout)
 {
+    #ifdef ARDUINO
     LoRa.sleep();
     delay(timeout);
     LoRa.receive();
+    #endif
 }
 
 #define VBATPIN 9
@@ -114,8 +116,14 @@ uint32_t timestamp()
 //uint8_t battery_data_head = 0;
 //uint8_t battery_data_index = 0;
 
+RTCZero rtcz;
+
 void recordBattery()
 {
+    size_t bufsize = 40;
+    char data[bufsize];
+    snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", batteryLevel(), rtcz.getEpoch());
+    recordData(data, strlen(data));
     recordData((uint8_t)nearbyintf(batteryLevel() * 10));
     //battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);
     //battery_timestamps[battery_data_index] = timestamp();
@@ -158,12 +166,15 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     //    LoRa.write(battery_samples[battery_data_head++]);
     //}
     println("RECEIVED REQUEST FOR PACKET: %d", packet_id);
-    uint8_t batch_size = MAX_MESSAGE_SIZE;
-    uint8_t *batch = getBatch(packet_id - 1, &batch_size);
-    println("PACKET Batch size is %d", batch_size);
-    for (uint8_t i=0; i< batch_size; i++) {
-        LoRa.write(batch[i]);
-    }
+    //uint8_t batch_size = MAX_MESSAGE_SIZE;
+    //uint8_t *batch = getBatch(packet_id - 1, &batch_size);
+    //println("PACKET Batch size is %d", batch_size);
+    char *batch = getBatch(packet_id - 1);
+    println("Sending batch: %s", batch);
+    LoRa.print(batch);
+    //for (uint8_t i=0; i< batch_size; i++) {
+    //    LoRa.write(batch[i]);
+    //}
     //if (battery_data_head >= battery_data_index) {
     //    battery_data_head = 0;
     //    battery_data_index = 0;

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <RTCZero.h>
 
 #ifdef ARDUINO
 #include <LoRa.h>
