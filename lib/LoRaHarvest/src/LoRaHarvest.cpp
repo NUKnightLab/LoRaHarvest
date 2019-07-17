@@ -195,10 +195,16 @@ void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
      */
     println("Collecting packet: %d", collectingPacketId());
     if (collectingPacketId() == 0) collectingPacketId(message[0]);
-    print("NODE: %d; PACKET: %d; BATS:", from_node, message[0]);
+    print("NODE: %d; PACKET: %d; MESSAGE:", from_node, message[0]);
     for (uint8_t i=1; i<msg_size; i++) {
-        print(" %f", (float)message[i] / 10.0);
+        //print(" %f", (float)message[i] / 10.0);
+        print("%c", message[i]);
     }
+    recordData((char*)(&message[1]), msg_size-1);
+    println("");
+    char *batch = getCurrentBatch();
+    println("** CURRENT BATCH:");
+    for (int i=0; i<strlen(batch); i++) print("%c", batch[i]);
     println("");
     waitingPacket(false);
     println("collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",

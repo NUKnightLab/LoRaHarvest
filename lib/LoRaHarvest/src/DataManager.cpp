@@ -44,8 +44,13 @@ void recordData(char *data, size_t len)
     println("memcopy length: %d", len);
     if (batch_index + len > BATCH_SIZE) incrementBatch();
     if (batch_index > 0) memset(&batches[current_batch][batch_index++], ',', 1);
+    println("RECORDING THIS DATA:");
+    for (int i=0; i<len; i++) print("%c", data[i]);
     memcpy(&batches[current_batch][batch_index], data, len);
     batch_index += len;
+    println("Recorded data. Current batch:");
+    for (int i=0; i<batch_index; i++) print("%c", batches[current_batch][i]);
+    println("");
     if (batch_index == BATCH_SIZE) incrementBatch();
 }
 
@@ -71,4 +76,9 @@ uint8_t *getBatch(uint8_t batch_no, uint8_t *batch_size)
 char *getBatch(uint8_t index)
 {
     return batches[index];
+}
+
+char *getCurrentBatch()
+{
+    return batches[current_batch];
 }

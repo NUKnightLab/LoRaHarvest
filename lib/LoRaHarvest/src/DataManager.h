@@ -14,5 +14,6 @@ uint8_t dataIndex();
 uint8_t numBatches(uint8_t batch_size);
 uint8_t *getBatch(uint8_t batch_no, uint8_t *batch_size);
 char *getBatch(uint8_t index);
+char *getCurrentBatch();
 
 #endif

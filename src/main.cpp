@@ -18,6 +18,7 @@
  */
 #include <LoRaHarvest.h>
 #include <console.h>
+#include <DataManager.h>
 
 #ifndef UNIT_TEST
 
@@ -101,6 +102,17 @@ void loop() {
         } else {
             collectingPacketId(collectingPacketId() - 1);
             if (collectingPacketId() == 0) {
+                // send collected node data to the API
+                println("***** SEND DATA TO API *****");
+                print("{ node: %d, data: [", nodes[collectingNodeIndex()]);
+                for (int i=0; i<numBatches(0); i++) {
+                    char *batch = (char*)getBatch(i);
+                    for (int j=0; j<10; j++) print("%c", batch[j]);
+                    if (i < numBatches(0)-1) print(",");
+                }
+                println("]}");
+                println("**********");
+                clearData();
                 collectingNodeIndex(collectingNodeIndex() + 1);
             }
             if (collectingNodeIndex() >= sizeof(nodes)) {
