@@ -19,6 +19,18 @@ int Thing2::subtract(int a, int b)
     return a - b;
 }
 
+uint8_t node_id;
+
+void nodeId(uint8_t id)
+{
+    node_id = id;
+}
+
+uint8_t nodeId()
+{
+    return node_id;
+}
+
 
 /**
  * Enforce a particular topology. Used in testing for simulation of signal reach under
@@ -156,8 +168,8 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     LoRa.beginPacket();
     println("writing TO: %d", reversedRoute[route_size-2]);
     LoRa.write(reversedRoute[route_size-2]);
-    println("writing FROM: %d", NODE_ID);
-    LoRa.write(NODE_ID);
+    println("writing FROM: %d", nodeId());
+    LoRa.write(nodeId());
     println("writing DEST: %d", reversedRoute[0]);
     LoRa.write(reversedRoute[0]);
     println("writing SEQ: %d", seq);
@@ -233,8 +245,8 @@ void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, 
     LoRa.beginPacket();
     println("writing TO: %d", reversedRoute[route_size-2]);
     LoRa.write(reversedRoute[route_size-2]);
-    println("writing FROM: %d", NODE_ID);
-    LoRa.write(NODE_ID);
+    println("writing FROM: %d", nodeId());
+    LoRa.write(nodeId());
     println("writing DEST: %d", reversedRoute[0]);
     LoRa.write(reversedRoute[0]);
     println("writing SEQ: %d", seq);
@@ -264,7 +276,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     LoRa.beginPacket();
     int replyTo = 255;
     for (size_t i=0; i<route_size; i++) {
-        if (route[i] == NODE_ID) {
+        if (route[i] == nodeId()) {
             replyTo = route[i+1];
         }
     }
@@ -273,7 +285,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     //}
     /* 6 bytes + route size + message size */
     LoRa.write(replyTo);                  // to
-    LoRa.write(NODE_ID);                  // from
+    LoRa.write(nodeId());                  // from
     LoRa.write(dest);                     // dest
     LoRa.write(seq);                      // seq
     LoRa.write(packetType);               // type
@@ -292,11 +304,11 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
     if (seq == last_seq) {
         return MESSAGE_CODE_DUPLICATE_SEQUENCE;
     }
-    if (to != NODE_ID && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
+    if (to != nodeId() && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
     uint8_t packet_id;
-    if (dest == NODE_ID) {
+    if (dest == nodeId()) {
         switch (packetType) {
             case PACKET_TYPE_SENDDATA:
                 packet_id = message[0];

@@ -24,6 +24,8 @@
 
 #ifdef ARDUINO
 
+#define NODE_ID 1
+
 uint8_t nodes[1] = { 2 };
 uint8_t routes[255][6] = {
     { 0 },
@@ -68,7 +70,8 @@ bool scheduleDataSample(unsigned long interval)
 }
 
 void setup() {
-    if (NODE_ID == 1) isCollector = true;
+    nodeId(NODE_ID);
+    if (nodeId() == 1) isCollector = true;
     LoRa.setPins(LORA_CS, LORA_RST, LORA_IRQ);
     if (!LoRa.begin(915E6)) {
         Serial.println("LoRa init failed");
@@ -123,7 +126,7 @@ void loop() {
                     LoRa.idle();
                     LoRa.beginPacket();
                     LoRa.write(routes[nodes[i]][1]);
-                    LoRa.write(NODE_ID);
+                    LoRa.write(nodeId());
                     LoRa.write(nodes[i]);
                     LoRa.write(++++seq);
                     LoRa.write(PACKET_TYPE_STANDBY);
@@ -158,7 +161,7 @@ void loop() {
             LoRa.idle();
             LoRa.beginPacket();
             LoRa.write(route[1]);
-            LoRa.write(NODE_ID);
+            LoRa.write(nodeId());
             LoRa.write(node_id);
             LoRa.write(++++seq);
             LoRa.write(PACKET_TYPE_SENDDATA);
