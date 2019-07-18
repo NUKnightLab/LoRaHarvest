@@ -19,6 +19,35 @@ namespace Test_DataManagerCommon {
         TEST_ASSERT_EQUAL_STRING_LEN("{\"test\":1.0}", recorded_data, 12);
     }
 
+    void test_batchBufferFill() {
+        clearData();
+        char batch[BATCH_SIZE];
+        for (int i=0; i<BATCH_SIZE; i++) {
+            batch[i] = i % 255;
+        }
+        for (int i=0; i<MAX_BATCHES; i++) {
+            TEST_ASSERT_EQUAL_STRING(getBatch(i), "");
+            recordData(batch, BATCH_SIZE);
+            TEST_ASSERT_EQUAL_STRING(getBatch(i), batch);
+        }
+        char different_batch[BATCH_SIZE];
+        for (int i=0; i<BATCH_SIZE; i++) {
+            different_batch[i] = (i+1)%255;
+        }
+        recordData(different_batch, BATCH_SIZE);
+        TEST_ASSERT_EQUAL_STRING(getBatch(0), different_batch);
+        for (int i=1; i<MAX_BATCHES; i++) {
+            TEST_ASSERT_EQUAL_STRING(getBatch(i), batch);
+        }
+    }
+
+    void test_addEmptyData() {
+        clearData();
+        TEST_ASSERT_EQUAL_STRING(getCurrentBatch(), "");
+        recordData("", 0);
+        TEST_ASSERT_EQUAL_STRING(getCurrentBatch(), "");
+    }
+
     void test_numBatches() {
         uint8_t batch_size = 10;
         uint8_t *batch;
@@ -55,6 +84,8 @@ namespace Test_DataManagerCommon {
         UNITY_BEGIN();
         RUN_TEST(test_recordData);
         RUN_TEST(test_numBatches);
+        RUN_TEST(test_batchBufferFill);
+        RUN_TEST(test_addEmptyData);
         UNITY_END();
     }
 }

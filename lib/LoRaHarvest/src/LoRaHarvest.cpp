@@ -3,6 +3,10 @@
 #include <math.h>
 #include <DataManager.h>
 
+#ifdef ARDUINO
+RTCZero rtcz;
+#endif
+
 int Thing1::add(int a, int b)
 {
     println("Adding: %d + %d", a, b);
@@ -116,13 +120,21 @@ uint32_t timestamp()
 //uint8_t battery_data_head = 0;
 //uint8_t battery_data_index = 0;
 
-RTCZero rtcz;
+
+unsigned long getTimestamp()
+{
+    #ifdef ARDUINO
+    return rtcz.getEpoch();
+    #else
+    return 0;
+    #endif
+}
 
 void recordBattery()
 {
     size_t bufsize = 40;
     char data[bufsize];
-    snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", batteryLevel(), rtcz.getEpoch());
+    snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", batteryLevel(), getTimestamp());
     recordData(data, strlen(data));
     recordData((uint8_t)nearbyintf(batteryLevel() * 10));
     //battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);

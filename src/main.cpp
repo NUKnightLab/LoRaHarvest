@@ -107,7 +107,8 @@ void loop() {
                 print("{ node: %d, data: [", nodes[collectingNodeIndex()]);
                 for (int i=0; i<numBatches(0); i++) {
                     char *batch = (char*)getBatch(i);
-                    for (int j=0; j<10; j++) print("%c", batch[j]);
+                    print(batch);
+                    //for (int j=0; j<10; j++) print("%c", batch[j]);
                     if (i < numBatches(0)-1) print(",");
                 }
                 println("]}");

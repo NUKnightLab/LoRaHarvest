@@ -13,6 +13,8 @@ void clearData()
 {
     _index = 0;
     memset(batches, 0, BATCH_SIZE*MAX_BATCHES*(sizeof(char)));
+    current_batch = 0;
+    batch_index = 0;
 }
 
 void clearBatch(uint8_t batch)
@@ -29,6 +31,7 @@ void incrementBatch()
 {
     current_batch++;
     if (current_batch >= MAX_BATCHES) current_batch = 0;
+    println("INCREMENTED BATCH TO %d", current_batch);
     clearBatch(current_batch);
     batch_index = 0;
 }
@@ -42,6 +45,7 @@ void recordData(uint8_t data)
 void recordData(char *data, size_t len)
 {
     println("memcopy length: %d", len);
+    if (len == 0) return;
     if (batch_index + len > BATCH_SIZE) incrementBatch();
     if (batch_index > 0) memset(&batches[current_batch][batch_index++], ',', 1);
     println("RECORDING THIS DATA:");
