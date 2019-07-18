@@ -6,7 +6,10 @@ uint8_t _buffer[255];
 uint8_t _index = 0;
 
 char batches[MAX_BATCHES][BATCH_SIZE] = {};
+/* We track max_batch separately from current_batch so we can overfill our buffer and
+   still return as much of the historical data as possible. */
 uint8_t current_batch = 0;
+uint8_t max_batch = 0;
 uint8_t batch_index = 0;
 
 void clearData()
@@ -14,6 +17,7 @@ void clearData()
     _index = 0;
     memset(batches, 0, BATCH_SIZE*MAX_BATCHES*(sizeof(char)));
     current_batch = 0;
+    max_batch = 0;
     batch_index = 0;
 }
 
@@ -29,9 +33,11 @@ uint8_t dataIndex()
 
 void incrementBatch()
 {
-    current_batch++;
+    current_batch++; max_batch++;
     if (current_batch >= MAX_BATCHES) current_batch = 0;
+    if (max_batch >= MAX_BATCHES) max_batch = MAX_BATCHES - 1;
     println("INCREMENTED BATCH TO %d", current_batch);
+    println("MAX BATCH is %d", max_batch);
     clearBatch(current_batch);
     batch_index = 0;
 }
@@ -60,7 +66,7 @@ void recordData(char *data, size_t len)
 
 uint8_t numBatches(uint8_t batch_size)
 {
-    return current_batch + 1;
+    return max_batch + 1;
     /*
     uint8_t num = _index / batch_size;
     if (_index % batch_size > 0) num++;

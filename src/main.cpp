@@ -77,6 +77,7 @@ void setup() {
     LoRa.enableCrc();
     LoRa.onReceive(onReceive);
     LoRa.receive();
+    rtcz.begin();
 }
 
 void loop() {
