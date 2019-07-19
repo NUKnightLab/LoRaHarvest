@@ -7,8 +7,8 @@
 
 #ifdef ARDUINO
 #include <LoRa.h>
-#include <RTCZero.h>
-extern RTCZero rtcz;
+// #include <RTCZero.h>
+// extern RTCZero rtcz;
 #endif
 
 class Thing1 {

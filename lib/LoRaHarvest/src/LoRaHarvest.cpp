@@ -3,9 +3,9 @@
 #include <math.h>
 #include <DataManager.h>
 
-#ifdef ARDUINO
-RTCZero rtcz;
-#endif
+// #ifdef ARDUINO
+// RTCZero rtcz;
+// #endif
 
 int Thing1::add(int a, int b)
 {
@@ -106,7 +106,7 @@ void standby(uint32_t timeout)
 
 #define VBATPIN 9
 
-float batteryLevel()
+float getBatteryLevel()
 {
     float val = 0.0;
     #ifdef ARDUINO
@@ -135,20 +135,21 @@ uint32_t timestamp()
 
 unsigned long getTimestamp()
 {
-    #ifdef ARDUINO
-    return rtcz.getEpoch();
-    #else
     return 0;
-    #endif
+    // #ifdef ARDUINO
+    // return rtcz.getEpoch();
+    // #else
+    // return 0;
+    // #endif
 }
 
 void recordBattery()
 {
     size_t bufsize = 40;
     char data[bufsize];
-    snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", batteryLevel(), getTimestamp());
+    snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", getBatteryLevel(), getTimestamp());
     recordData(data, strlen(data));
-    recordData((uint8_t)nearbyintf(batteryLevel() * 10));
+    recordData((uint8_t)nearbyintf(getBatteryLevel() * 10));
     //battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);
     //battery_timestamps[battery_data_index] = timestamp();
     //battery_data_index++;
@@ -393,5 +394,6 @@ void setupLoRa(int csPin, int resetPin, int irqPin)
     //LoRa.setSyncWord(SYNC_WORD);
     LoRa.enableCrc();
     LoRa.onReceive(onReceive);
+    LoRa.receive();
 }
 #endif
