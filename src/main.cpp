@@ -26,7 +26,7 @@
 
 #define NODE_ID 1
 
-uint8_t nodes[1] = { 2 };
+uint8_t nodes[2] = { 2, 3 };
 uint8_t routes[255][6] = {
     { 0 },
     { 0 },
