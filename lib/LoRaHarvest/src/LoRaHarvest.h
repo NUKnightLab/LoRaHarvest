@@ -7,8 +7,8 @@
 
 #ifdef ARDUINO
 #include <LoRa.h>
-// #include <RTCZero.h>
-// extern RTCZero rtcz;
+#include <RTCZero.h>
+extern RTCZero rtcz;
 #endif
 
 class Thing1 {
@@ -77,7 +77,7 @@ void standby(uint32_t timeout);
 void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute);
 void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size);
 bool topologyTest(int config, int to, int from);
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology=0);
+int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology=0);
 void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size);
 
 #endif

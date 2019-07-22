@@ -24,7 +24,7 @@
 
 #ifdef ARDUINO
 
-#define NODE_ID 1
+#define NODE_ID 3
 
 uint8_t nodes[2] = { 2, 3 };
 uint8_t routes[255][6] = {
@@ -80,7 +80,7 @@ void setup() {
     LoRa.enableCrc();
     LoRa.onReceive(onReceive);
     LoRa.receive();
-    //rtcz.begin();
+    rtcz.begin();
 }
 
 void loop() {
