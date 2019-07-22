@@ -132,6 +132,16 @@ uint32_t timestamp()
 //uint8_t battery_data_head = 0;
 //uint8_t battery_data_index = 0;
 
+void writeTimestamp()
+{
+    uint32_t ts = rtcz.getEpoch();
+    print("Sending TIMESTAMP: %ul", ts);
+    LoRa.write(ts >> 24);
+    LoRa.write(ts >> 16);
+    LoRa.write(ts >> 8);
+    LoRa.write(ts);
+}
+
 
 unsigned long getTimestamp()
 {
@@ -177,6 +187,7 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     LoRa.write(seq);
     println("writing TYPE: %d", PACKET_TYPE_DATA);
     LoRa.write(PACKET_TYPE_DATA);
+    writeTimestamp();
     println("SIZEOF REVERSED ROUTE: %d", route_size);
     for (size_t i=route_size; i-- > 0;) {
         println("ROUTE: %d", reversedRoute[i]);
@@ -253,7 +264,8 @@ void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, 
     println("writing SEQ: %d", seq);
     LoRa.write(seq);
     println("writing TYPE: %d", PACKET_TYPE_ECHO);
-    LoRa.write(PACKET_TYPE_ECHO);
+    LoRa.write(PACKET_TYPE_ECHO); 
+    writeTimestamp();
     println("SIZEOF REVERSED ROUTE: %d", route_size);
     for (size_t i=route_size; i-- > 0;) {
         println("ROUTE: %d", reversedRoute[i]);
@@ -290,6 +302,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     LoRa.write(dest);                     // dest
     LoRa.write(seq);                      // seq
     LoRa.write(packetType);               // type
+    writeTimestamp();
     LoRa.write(route, route_size);     // route
     LoRa.write(0);                        // end-route
     LoRa.write(message, msg_size); // message
@@ -361,10 +374,11 @@ void onReceive(int packetSize)
     int dest = LoRa.read();
     int seq = LoRa.read();
     int type = LoRa.read();
+    uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
     size_t route_idx_ = 0;
     size_t msg_idx_ = 0;
-    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d",
-        to, from, dest, seq, type, LoRa.packetRssi());
+    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %ul",
+        to, from, dest, seq, type, LoRa.packetRssi(), ts);
     print("; ROUTE:");
     while (LoRa.available()) {
         uint8_t node = LoRa.read();

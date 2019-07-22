@@ -70,6 +70,7 @@ void collectingPacketId(uint8_t val);
 
 void recordBattery();
 
+void writeTimestamp();
 void onReceive(int packetSize);
 void setupLoRa(int csPin, int resetPin, int irqPin);
 void standby(uint32_t timeout);
