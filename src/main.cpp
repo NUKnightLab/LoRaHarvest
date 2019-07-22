@@ -130,6 +130,7 @@ void loop() {
                     LoRa.write(nodes[i]);
                     LoRa.write(++++seq);
                     LoRa.write(PACKET_TYPE_STANDBY);
+                    writeTimestamp();
                     LoRa.write(routes[nodes[i]], sizeof(routes[nodes[i]]));
                     LoRa.write(0); // end route
                     LoRa.write(nextCollection() / 1000);
@@ -165,6 +166,9 @@ void loop() {
             LoRa.write(node_id);
             LoRa.write(++++seq);
             LoRa.write(PACKET_TYPE_SENDDATA);
+
+            writeTimestamp();
+
             LoRa.write(route, route_size);
             LoRa.write(0); // end route
             LoRa.write(collectingPacketId()); // packet id
