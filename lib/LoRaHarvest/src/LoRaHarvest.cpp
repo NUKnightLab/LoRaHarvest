@@ -106,7 +106,7 @@ void standby(uint32_t timeout)
 
 #define VBATPIN 9
 
-float batteryLevel()
+float getBatteryLevel()
 {
     float val = 0.0;
     #ifdef ARDUINO
@@ -135,7 +135,7 @@ uint32_t timestamp()
 void writeTimestamp()
 {
     uint32_t ts = rtcz.getEpoch();
-    print("Sending TIMESTAMP: %ul", ts);
+    print("Sending TIMESTAMP: %u", ts);
     LoRa.write(ts >> 24);
     LoRa.write(ts >> 16);
     LoRa.write(ts >> 8);
@@ -156,9 +156,9 @@ void recordBattery()
 {
     size_t bufsize = 40;
     char data[bufsize];
-    snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", batteryLevel(), getTimestamp());
+    snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", getBatteryLevel(), getTimestamp());
     recordData(data, strlen(data));
-    recordData((uint8_t)nearbyintf(batteryLevel() * 10));
+    recordData((uint8_t)nearbyintf(getBatteryLevel() * 10));
     //battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);
     //battery_timestamps[battery_data_index] = timestamp();
     //battery_data_index++;
@@ -311,7 +311,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
 }
 
 
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
+int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
 {
     static int last_seq = 0;
     if (seq == last_seq) {
@@ -325,6 +325,8 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint8_t *r
         switch (packetType) {
             case PACKET_TYPE_SENDDATA:
                 packet_id = message[0];
+                /* sync time with upstream requests */
+                rtcz.setEpoch(timestamp);
                 sendDataPacket(packet_id, ++last_seq, route, route_size); // TODO: get packet # request from message
                 return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
             case PACKET_TYPE_DATA:
@@ -376,7 +378,7 @@ void onReceive(int packetSize)
     uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
     size_t route_idx_ = 0;
     size_t msg_idx_ = 0;
-    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %ul",
+    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %u",
         to, from, dest, seq, type, LoRa.packetRssi(), ts);
     print("; ROUTE:");
     while (LoRa.available()) {
@@ -390,7 +392,7 @@ void onReceive(int packetSize)
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }
-    handlePacket(to, from, dest, seq, type, route_buffer, route_idx_, msg_buffer, msg_idx_);
+    handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_);
 }
 
 void setupLoRa(int csPin, int resetPin, int irqPin)
@@ -407,5 +409,6 @@ void setupLoRa(int csPin, int resetPin, int irqPin)
     //LoRa.setSyncWord(SYNC_WORD);
     LoRa.enableCrc();
     LoRa.onReceive(onReceive);
+    LoRa.receive();
 }
 #endif
