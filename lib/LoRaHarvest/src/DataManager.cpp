@@ -62,6 +62,7 @@ void recordData(char *data, size_t len)
     for (int i=0; i<batch_index; i++) print("%c", batches[current_batch][i]);
     println("");
     if (batch_index == BATCH_SIZE) incrementBatch();
+    println("Completed recordData");
 }
 
 uint8_t numBatches(uint8_t batch_size)
