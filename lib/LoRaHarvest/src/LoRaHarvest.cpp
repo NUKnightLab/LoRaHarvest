@@ -98,9 +98,9 @@ void collectingPacketId(uint8_t val)
 void standby(uint32_t timeout)
 {
     #ifdef ARDUINO
-    LoRa.sleep();
-    delay(timeout);
-    LoRa.receive();
+    //LoRa.sleep();
+    //delay(timeout);
+    //LoRa.receive();
     #endif
 }
 
