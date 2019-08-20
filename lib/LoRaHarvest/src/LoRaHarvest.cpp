@@ -319,30 +319,48 @@ void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq)
     LoRa.receive();
 }
 
-void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size)
+void handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t msg_size)
 {
-    /**
-     * If we asked for packet 0, then the actual packet we were waiting for is whatever
-     * the node says it is.
-     */
-    println("Collecting packet: %d", collectingPacketId());
-    if (collectingPacketId() == 0) collectingPacketId(message[0]);
-    print("NODE: %d; PACKET: %d; MESSAGE:", from_node, message[0]);
-    for (uint8_t i=1; i<msg_size; i++) {
-        //print(" %f", (float)message[i] / 10.0);
-        print("%c", message[i]);
+    if (isCollector()) {
+        uint8_t packet_id = message[0];
+        static uint8_t nodes_collected[255] = {0};
+        print("NODE: %d; PACKET: %d; MESSAGE:", from_node, packet_id);
+        for (uint8_t i=1; i<msg_size; i++) {
+            //print(" %f", (float)message[i] / 10.0);
+            print("%c", message[i]);
+        }
+        recordData((char*)(&message[1]), msg_size-1);
+        println("");
+        char *batch = getCurrentBatch();
+        println("Got current batch");
+        if (packet_id == 1) { // TODO: be sure we received all available packets
+            println("Packet ID is 1");
+            readyToPost(from_node);
+        } else {
+            println("Packet ID is not 1");
+            sendCollectPacket(from_node, --packet_id, seq);
+        }
+    } else {
+        println("Collecting packet: %d", collectingPacketId());
+        if (collectingPacketId() == 0) collectingPacketId(message[0]);
+        print("NODE: %d; PACKET: %d; MESSAGE:", from_node, message[0]);
+        for (uint8_t i=1; i<msg_size; i++) {
+            //print(" %f", (float)message[i] / 10.0);
+            print("%c", message[i]);
+        }
+        recordData((char*)(&message[1]), msg_size-1);
+        println("");
+        char *batch = getCurrentBatch();
+        println("** CURRENT BATCH:");
+        for (int i=0; i<strlen(batch); i++) print("%c", batch[i]);
+        println("");
+        waitingPacket(false);
+        println("collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
+            collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());
     }
-    recordData((char*)(&message[1]), msg_size-1);
-    println("");
-    char *batch = getCurrentBatch();
-    println("** CURRENT BATCH:");
-    for (int i=0; i<strlen(batch); i++) print("%c", batch[i]);
-    println("");
-    waitingPacket(false);
-    println("collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
-        collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());
 }
 
+/*
 void collector_handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t msg_size)
 {
     uint8_t packet_id = message[0];
@@ -364,7 +382,9 @@ void collector_handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *messag
         sendCollectPacket(from_node, --packet_id, seq);
     }
 }
+*/
 
+/*
 int collector_handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
 {
     static int last_seq = 0;
@@ -383,7 +403,6 @@ int collector_handlePacket(int to, int from, int dest, int seq, int packetType, 
         switch (packetType) {
             //case PACKET_TYPE_SENDDATA:
             //    packet_id = message[0];
-            //    /* sync time with upstream requests */
             //    rtcz.setEpoch(timestamp);
             //    sendDataPacket(packet_id, ++last_seq, route, route_size); // TODO: get packet # request from message
             //    return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
@@ -423,36 +442,8 @@ int collector_handlePacket(int to, int from, int dest, int seq, int packetType, 
     //return MESSAGE_CODE_NONE;
     return 0;
 }
+*/
 
-void collector_onReceive(int packetSize)
-{
-    static uint8_t route_buffer[MAX_ROUTE_SIZE];
-    static uint8_t msg_buffer[255];
-    int to = LoRa.read();
-    if (to != nodeId()) return;
-    int from = LoRa.read();
-    int dest = LoRa.read();
-    int seq = LoRa.read();
-    int type = LoRa.read();
-    uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
-    size_t route_idx_ = 0;
-    size_t msg_idx_ = 0;
-    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %u",
-        to, from, dest, seq, type, LoRa.packetRssi(), ts);
-    print("; ROUTE:");
-    while (LoRa.available()) {
-        uint8_t node = LoRa.read();
-        if (node == 0) break;
-        route_buffer[route_idx_++] = node;
-        print(" %d", route_buffer[route_idx_-1]);
-    }
-    println("");
-    println("SNR: %f; FRQERR: %f", LoRa.packetSnr(), LoRa.packetFrequencyError());
-    while (LoRa.available()) {
-        msg_buffer[msg_idx_++] = LoRa.read();
-    }
-    collector_handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
-}
 
 void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, uint8_t *message, uint8_t msg_size)
 {
@@ -538,7 +529,14 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t t
                 sendDataPacket(packet_id, ++last_seq, route, route_size); // TODO: get packet # request from message
                 return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
             case PACKET_TYPE_DATA:
-                handleDataMessage(route[0], message, msg_size);
+                handleDataMessage(route[0], ++++seq, message, msg_size);
+                /*
+                if (isCollector()) {
+                    collector_handleDataMessage(route[0], ++++seq, message, msg_size);
+                } else {
+                    handleDataMessage(route[0], message, msg_size);
+                }
+                */
                 return MESSAGE_CODE_RECEIVED_DATA_PACKET;
             case PACKET_TYPE_STANDBY:
                 standby(message[0]); // up to 255 seconds. TODO, use 2 bytes for longer timeouts
@@ -574,6 +572,39 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t t
 #ifdef ARDUINO
 
 
+/*
+void collector_onReceive(int packetSize)
+{
+    static uint8_t route_buffer[MAX_ROUTE_SIZE];
+    static uint8_t msg_buffer[255];
+    int to = LoRa.read();
+    if (to != nodeId()) return;
+    int from = LoRa.read();
+    int dest = LoRa.read();
+    int seq = LoRa.read();
+    int type = LoRa.read();
+    uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
+    size_t route_idx_ = 0;
+    size_t msg_idx_ = 0;
+    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %u",
+        to, from, dest, seq, type, LoRa.packetRssi(), ts);
+    print("; ROUTE:");
+    while (LoRa.available()) {
+        uint8_t node = LoRa.read();
+        if (node == 0) break;
+        route_buffer[route_idx_++] = node;
+        print(" %d", route_buffer[route_idx_-1]);
+    }
+    println("");
+    println("SNR: %f; FRQERR: %f", LoRa.packetSnr(), LoRa.packetFrequencyError());
+    while (LoRa.available()) {
+        msg_buffer[msg_idx_++] = LoRa.read();
+    }
+    //collector_handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
+    handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
+}
+*/
+
 void onReceive(int packetSize)
 {
     static uint8_t route_buffer[MAX_ROUTE_SIZE];
@@ -600,7 +631,7 @@ void onReceive(int packetSize)
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }
-    handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_);
+    handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
 }
 
 void setupLoRa(int csPin, int resetPin, int irqPin)
