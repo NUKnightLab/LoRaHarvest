@@ -11,6 +11,10 @@
 extern RTCZero rtcz;
 #endif
 
+
+extern uint8_t nodes[2];
+extern uint8_t routes[255][6];
+
 class Thing1 {
 public:
     Thing1() {}
@@ -58,6 +62,9 @@ const int MAX_MESSAGE_SIZE = 100;
 void nodeId(uint8_t id);
 uint8_t nodeId();
 
+void readyToPost(uint8_t node_id);
+uint8_t readyToPost();
+
 /* collecting state management */
 bool collectingData();
 void collectingData(bool val);
@@ -74,10 +81,16 @@ void writeTimestamp();
 void onReceive(int packetSize);
 void setupLoRa(int csPin, int resetPin, int irqPin);
 void standby(uint32_t timeout);
-void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute);
+void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t route_size);
+void sendStandby(uint8_t seq, uint32_t next_collection);
 void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size);
+void collector_handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t msg_size);
+int collector_handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology);
+void collector_onReceive(int packetSize);
+void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq);
 bool topologyTest(int config, int to, int from);
 int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology=0);
+void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, uint8_t *message, uint8_t msg_size);
 void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size);
 
 #endif
