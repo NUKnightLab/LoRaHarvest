@@ -30,6 +30,18 @@ uint8_t readyToPost()
     return _ready_to_post;
 }
 
+bool _is_collector = false;
+
+void isCollector(bool _is)
+{
+    _is_collector = _is;
+}
+
+bool isCollector()
+{
+    return _is_collector;
+}
+
 
 int Thing1::add(int a, int b)
 {
@@ -532,7 +544,7 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t t
                 standby(message[0]); // up to 255 seconds. TODO, use 2 bytes for longer timeouts
                 return MESSAGE_CODE_STANDBY;
             case PACKET_TYPE_ECHO:
-                if (!isCollector) {
+                if (!isCollector()) {
                     handleEchoMessage(++last_seq, route, route_size, message, msg_size);
                 } else {
                     println("MESSAGE:");
@@ -545,7 +557,7 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t t
     } else if (dest == 255) { // broadcast message
         switch (packetType) {
             case PACKET_TYPE_STANDBY:
-                if (!isCollector) {
+                if (!isCollector()) {
                     println("REC'd BROADCAST STANDBY FOR: %d", message[0]);
                     routeMessage(255, last_seq, PACKET_TYPE_STANDBY, route, route_size, message, msg_size);
                     standby(message[0]);

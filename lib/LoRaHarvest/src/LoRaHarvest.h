@@ -27,8 +27,6 @@ public:
     int subtract (int a, int b);
 };
 
-static bool isCollector = false;
-
 const long frequency = 915E6; // Currently only supporting 915 MHz
 const int LORA_CS = 8; // chip select
 const int LORA_RST = 4; // reset
@@ -64,6 +62,9 @@ uint8_t nodeId();
 
 void readyToPost(uint8_t node_id);
 uint8_t readyToPost();
+
+void isCollector(bool _is);
+bool isCollector();
 
 /* collecting state management */
 bool collectingData();
