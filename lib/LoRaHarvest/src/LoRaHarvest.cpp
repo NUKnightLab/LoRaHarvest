@@ -171,7 +171,7 @@ uint32_t timestamp()
 void writeTimestamp()
 {
     uint32_t ts = rtcz.getEpoch();
-    print("Sending TIMESTAMP: %u", ts);
+    println("Sending TIMESTAMP: %u", ts);
     LoRa.write(ts >> 24);
     LoRa.write(ts >> 16);
     LoRa.write(ts >> 8);
@@ -617,17 +617,17 @@ void onReceive(int packetSize)
     uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
     size_t route_idx_ = 0;
     size_t msg_idx_ = 0;
-    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %u",
-        to, from, dest, seq, type, LoRa.packetRssi(), ts);
-    print("; ROUTE:");
+    //print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %u",
+    //    to, from, dest, seq, type, LoRa.packetRssi(), ts);
+    //print("; ROUTE:");
     while (LoRa.available()) {
         uint8_t node = LoRa.read();
         if (node == 0) break;
         route_buffer[route_idx_++] = node;
-        print(" %d", route_buffer[route_idx_-1]);
+        //print(" %d", route_buffer[route_idx_-1]);
     }
-    println("");
-    println("SNR: %f; FRQERR: %f", LoRa.packetSnr(), LoRa.packetFrequencyError());
+    //println("");
+    //println("SNR: %f; FRQERR: %f", LoRa.packetSnr(), LoRa.packetFrequencyError());
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }
