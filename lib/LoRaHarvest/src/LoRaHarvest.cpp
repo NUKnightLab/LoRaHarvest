@@ -636,6 +636,8 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
         } else if (rssi < -90) {
             txPower(from, tx + 1);
         } else if (rssi > -70) {
+            txPower(from, tx-2);
+        } else if (rssi > -80) {
             txPower(from, tx-1);
         } else {
             txPower(from, tx);
