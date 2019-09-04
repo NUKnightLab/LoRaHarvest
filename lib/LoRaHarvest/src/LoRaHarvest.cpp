@@ -7,6 +7,7 @@
 RTCZero rtcz;
 #endif
 
+
 uint8_t nodes[2] = { 2, 3 };
 uint8_t routes[255][6] = {
     { 0 },
@@ -19,6 +20,7 @@ uint8_t routes[255][6] = {
 };
 
 uint8_t _ready_to_post = 0;
+
 
 void readyToPost(uint8_t node_id)
 {
@@ -67,6 +69,17 @@ uint8_t nodeId()
     return _node_id;
 }
 
+static uint32_t _system_start_time;
+
+void systemStartTime(uint32_t start_time)
+{
+    _system_start_time = start_time;
+}
+
+uint32_t systemStartTime()
+{
+    return _system_start_time;
+}
 
 /**
  * Enforce a particular topology. Used in testing for simulation of signal reach under
@@ -140,6 +153,16 @@ void standby(uint32_t timeout)
     #endif
 }
 
+// typedef void (*timeSyncFcn)(uint32_t);
+//using timeSyncFcn = void(*)(uint32_t);
+void (*time_sync_fcn)(uint32_t);
+
+int setTimeSyncFcn(timeSyncFcn the_function)
+{
+    time_sync_fcn = the_function;
+    return 0;
+}
+
 #define VBATPIN 9
 
 float getBatteryLevel()
@@ -204,57 +227,26 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
 {
     #ifdef ARDUINO
     if (packet_id == 0) packet_id = numBatches(MAX_MESSAGE_SIZE);
-    println("SEND DATA PACKET: %d", packet_id);
-    print("REV rOUTE:");
-    for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
-    println("");
-    //uint8_t bat = (uint8_t)nearbyintf(batteryLevel() * 10);
-    //uint8_t message[2] = { packet_id, bat }; // TODO: get the real data
+    //for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
     LoRa.idle();
     LoRa.beginPacket();
-    println("writing TO: %d", reversedRoute[route_size-2]);
     LoRa.write(reversedRoute[route_size-2]);
-    println("writing FROM: %d", nodeId());
     LoRa.write(nodeId());
-    println("writing DEST: %d", reversedRoute[0]);
     LoRa.write(reversedRoute[0]);
-    println("writing SEQ: %d", seq);
     LoRa.write(seq);
-    println("writing TYPE: %d", PACKET_TYPE_DATA);
     LoRa.write(PACKET_TYPE_DATA);
     writeTimestamp();
-    println("SIZEOF REVERSED ROUTE: %d", route_size);
     for (size_t i=route_size; i-- > 0;) {
-        println("ROUTE: %d", reversedRoute[i]);
         LoRa.write(reversedRoute[i]);
     }
-    println("ZERO");
-    LoRa.write(0);
-    //LoRa.write(message, sizeof(message));
+    LoRa.write(0); // end of route
     LoRa.write(packet_id);
-    uint8_t msg_size = 0;
-    //for (;battery_data_head<battery_data_index && msg_size<10; msg_size++) {
-    //    LoRa.write(battery_samples[battery_data_head++]);
-    //}
-    println("RECEIVED REQUEST FOR PACKET: %d", packet_id);
-    //uint8_t batch_size = MAX_MESSAGE_SIZE;
-    //uint8_t *batch = getBatch(packet_id - 1, &batch_size);
-    //println("PACKET Batch size is %d", batch_size);
+    //uint8_t msg_size = 0;
     char *batch = getBatch(packet_id - 1);
-    println("Sending batch: %s", batch);
     LoRa.print(batch);
-    //for (uint8_t i=0; i< batch_size; i++) {
-    //    LoRa.write(batch[i]);
-    //}
-    //if (battery_data_head >= battery_data_index) {
-    //    battery_data_head = 0;
-    //    battery_data_index = 0;
-    //}
-    if (packet_id == 1) clearData(); // TODO: tunneled ack from collector before clearing
     LoRa.endPacket();
-    println(".. DONE");
+    if (packet_id == 1) clearData(); // TODO: tunneled ack from collector before clearing
     LoRa.receive();
-    println("RECEIVING");
     #endif
 }
 
@@ -520,12 +512,16 @@ int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t t
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
     uint8_t packet_id;
+    uint32_t uptime;
     if (dest == nodeId()) {
         switch (packetType) {
             case PACKET_TYPE_SENDDATA:
                 packet_id = message[0];
                 /* sync time with upstream requests */
-                rtcz.setEpoch(timestamp);
+                time_sync_fcn(timestamp);
+                //uptime = rtcz.getEpoch() - systemStartTime();
+                //rtcz.setEpoch(timestamp);
+                //systemStartTime(timestamp - uptime);
                 sendDataPacket(packet_id, ++last_seq, route, route_size); // TODO: get packet # request from message
                 return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
             case PACKET_TYPE_DATA:
