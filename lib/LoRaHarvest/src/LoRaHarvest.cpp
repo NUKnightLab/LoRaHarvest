@@ -383,12 +383,12 @@ void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq)
     Serial.print("Route size: ");
     Serial.println(route_size);
     Serial.print("TX: ");
-    Serial.println(txPower(node_id));
-    LoRa.setTxPower(txPower(node_id));
+    uint8_t to = route[1];
+    Serial.println(txPower(to));
+    LoRa.setTxPower(txPower(to));
     LoRa.flush();
     LoRa.idle();
     LoRa.beginPacket();
-    uint8_t to = route[1];
     LoRa.write(to);
     LoRa.write(nodeId());
     LoRa.write(node_id);
