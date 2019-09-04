@@ -2,21 +2,113 @@
 #include <console.h>
 #include <math.h>
 #include <DataManager.h>
+#include <ArduinoJson.h>
 
 #ifdef ARDUINO
 RTCZero rtcz;
 #endif
 
-uint8_t nodes[2] = { 2, 3 };
+/*
+uint8_t nodes[3] = { 2, 3, 4 };
 uint8_t routes[255][6] = {
     { 0 },
     { 0 },
     { 1, 2 },
     { 1, 2, 3 },
-    { 1, 2, 3, 6, 5, 4 },
+    { 1, 2, 3, 4 },
     { 1, 3, 6, 5 },
     { 1, 2, 3, 6 }
 };
+*/
+uint8_t nodes[20]; // TODO: max nodes allowed?
+uint8_t routes[255][6] = { { } };
+static uint8_t _tx_powers[255];
+uint8_t node_count = 0;
+static uint32_t _request_time = millis();
+uint8_t _last_request_node;
+
+
+uint8_t txPower(uint8_t node_id)
+{
+    return _tx_powers[node_id];
+}
+
+void txPower(uint8_t node_id, uint8_t db)
+{
+    if (db > MAX_LORA_TX_POWER) db = MAX_LORA_TX_POWER;
+    if (db < MIN_LORA_TX_POWER) db = MIN_LORA_TX_POWER;
+    _tx_powers[node_id] = db;
+}
+
+
+uint32_t requestTimer()
+{
+    return millis() - _request_time;
+}
+
+void resetRequestTimer()
+{
+    _request_time = millis();
+}
+
+//DynamicJsonDocument routing_table(255);
+
+
+void parseRoutingTable(char json[])
+{
+    // TODO: calculate actual needed size
+    StaticJsonDocument<1024> routing_table;
+    Serial.println("Parsing routing table from json ..");
+    DeserializationError error = deserializeJson(routing_table, json);
+    JsonObject root = routing_table.as<JsonObject>();
+    if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        while(1);
+    } else {
+        Serial.println(".. done parsing json ..");
+        serializeJsonPretty(routing_table, Serial);
+        //for (JsonVariant value : routing_table["nodes"]) {
+        //    Serial.println(value["node_id"].as<int>);
+        //}
+        JsonArray _nodes = root["nodes"].as<JsonArray>();
+        for (JsonArray::iterator it=_nodes.begin(); it!=_nodes.end(); ++it) {
+            //Serial.println(it->as<JsonObject>()["node_id"]->as<uint8_t>());
+            Serial.print("- NODE ");
+            JsonObject node = it->as<JsonObject>();
+            uint8_t _id = node["node_id"];
+            JsonArray _route = node["route"].as<JsonArray>();
+            nodes[node_count++] = _id;
+            Serial.print(_id);
+            Serial.print(" ROUTE: ");
+            uint8_t node_array_index = 0;
+            for (JsonArray::iterator route_it=_route.begin(); route_it!=_route.end(); ++route_it) {
+                uint8_t _next = route_it->as<uint8_t>();
+                Serial.print(_next);
+                Serial.print(" ");
+                routes[_id][node_array_index++] = _next;
+            }
+            routes[_id][node_array_index] = 0;
+            Serial.println("");
+        }
+        Serial.print("Parsed routes. Nodes: ");
+        for (uint8_t i=0; i<node_count; i++) {
+            Serial.print(nodes[i]);
+            Serial.print(" ");
+            txPower(nodes[i], DEFAULT_LORA_TX_POWER);
+        }
+    }
+}
+
+void lastRequestNode(uint8_t node_id)
+{
+    _last_request_node = node_id;
+}
+
+uint8_t lastRequestNode()
+{
+    return _last_request_node;
+}
 
 uint8_t _ready_to_post = 0;
 
@@ -212,7 +304,8 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     //uint8_t message[2] = { packet_id, bat }; // TODO: get the real data
     LoRa.idle();
     LoRa.beginPacket();
-    println("writing TO: %d", reversedRoute[route_size-2]);
+    uint8_t to = reversedRoute[route_size-2];
+    println("writing TO: %d", to);
     LoRa.write(reversedRoute[route_size-2]);
     println("writing FROM: %d", nodeId());
     LoRa.write(nodeId());
@@ -220,6 +313,8 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     LoRa.write(reversedRoute[0]);
     println("writing SEQ: %d", seq);
     LoRa.write(seq);
+    println("Writing TX: %d", txPower(to));
+    LoRa.write(txPower(to));
     println("writing TYPE: %d", PACKET_TYPE_DATA);
     LoRa.write(PACKET_TYPE_DATA);
     writeTimestamp();
@@ -264,10 +359,13 @@ void sendStandby(uint8_t seq, uint32_t next_collection)
         LoRa.flush();
         LoRa.idle();
         LoRa.beginPacket();
-        LoRa.write(routes[nodes[i]][1]);
+        uint8_t to = routes[nodes[i]][1];
+        //LoRa.write(routes[nodes[i]][1]);
+        LoRa.write(to);
         LoRa.write(nodeId());
         LoRa.write(nodes[i]);
         LoRa.write(seq);
+        LoRa.write(txPower(to));
         LoRa.write(PACKET_TYPE_STANDBY);
         writeTimestamp();
         LoRa.write(routes[nodes[i]], sizeof(routes[nodes[i]]));
@@ -300,22 +398,33 @@ void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq)
         Serial.print(" ");
     }
     Serial.println("");
+    Serial.print("Route size: ");
+    Serial.println(route_size);
+    Serial.print("TX: ");
+    Serial.println(txPower(node_id));
+    LoRa.setTxPower(txPower(node_id));
     LoRa.flush();
     LoRa.idle();
     LoRa.beginPacket();
-    LoRa.write(route[1]);
+    uint8_t to = route[1];
+    LoRa.write(to);
     LoRa.write(nodeId());
     LoRa.write(node_id);
     LoRa.write(seq);
+    LoRa.write(txPower(to));
     //LoRa.write(PACKET_TYPE_SENDDATA);
     LoRa.write(1);
     writeTimestamp();
     LoRa.write(route, route_size);
     LoRa.write(0); // end route
+    Serial.print("REQUESTING PACKET ID: ");
+    Serial.println(packet_id);
     LoRa.write(packet_id); // packet id
     LoRa.endPacket();
+    LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
     //timeout = millis() + 10000;
     //println("set timeout to: %d", timeout);
+    Serial.println("RECEIVING ...");
     LoRa.receive();
 }
 
@@ -339,6 +448,8 @@ void handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t 
         } else {
             println("Packet ID is not 1");
             sendCollectPacket(from_node, --packet_id, seq);
+            lastRequestNode(from_node);
+            resetRequestTimer();
         }
     } else {
         println("Collecting packet: %d", collectingPacketId());
@@ -453,14 +564,17 @@ void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, 
     println("");
     LoRa.idle();
     LoRa.beginPacket();
-    println("writing TO: %d", reversedRoute[route_size-2]);
-    LoRa.write(reversedRoute[route_size-2]);
+    uint8_t to = reversedRoute[route_size-2];
+    println("writing TO: %d", to);
+    LoRa.write(to);
     println("writing FROM: %d", nodeId());
     LoRa.write(nodeId());
     println("writing DEST: %d", reversedRoute[0]);
     LoRa.write(reversedRoute[0]);
     println("writing SEQ: %d", seq);
     LoRa.write(seq);
+    println("writing TX: %d", txPower(to));
+    LoRa.write(txPower(to));
     println("writing TYPE: %d", PACKET_TYPE_ECHO);
     LoRa.write(PACKET_TYPE_ECHO); 
     writeTimestamp();
@@ -499,6 +613,11 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     LoRa.write(nodeId());                  // from
     LoRa.write(dest);                     // dest
     LoRa.write(seq);                      // seq
+    if (replyTo == 255) {
+        LoRa.write(0);
+    } else {
+        LoRa.write(txPower(replyTo));
+    }
     LoRa.write(packetType);               // type
     writeTimestamp();
     LoRa.write(route, route_size);     // route
@@ -510,13 +629,33 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
 }
 
 
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
+int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
 {
     static int last_seq = 0;
     if (seq == last_seq) {
         return MESSAGE_CODE_DUPLICATE_SEQUENCE;
     }
     if (to != nodeId() && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
+
+    Serial.print("REC'D RSSI: ");
+    Serial.println(LoRa.packetRssi());
+    int rssi = LoRa.packetRssi();
+    if (tx > 0) {
+        if (rssi < -100) {
+            txPower(from, tx + 2);
+        } else if (rssi < -90) {
+            txPower(from, tx + 1);
+        } else if (rssi > -70) {
+            txPower(from, tx-1);
+        } else {
+            txPower(from, tx);
+        }
+    }
+    Serial.print("Set TX(");
+    Serial.print(from);
+    Serial.print(") = ");
+    Serial.println(txPower(from));
+    Serial.println("*****");
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
     uint8_t packet_id;
@@ -613,6 +752,7 @@ void onReceive(int packetSize)
     int from = LoRa.read();
     int dest = LoRa.read();
     int seq = LoRa.read();
+    int tx = LoRa.read();
     int type = LoRa.read();
     uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
     size_t route_idx_ = 0;
@@ -631,7 +771,7 @@ void onReceive(int packetSize)
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }
-    handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
+    handlePacket(to, from, dest, seq, tx, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
 }
 
 void setupLoRa(int csPin, int resetPin, int irqPin)

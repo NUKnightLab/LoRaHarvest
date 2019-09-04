@@ -12,8 +12,14 @@ extern RTCZero rtcz;
 #endif
 
 
-extern uint8_t nodes[2];
+extern uint8_t nodes[20]; // TODO: max number of nodes supported?
 extern uint8_t routes[255][6];
+extern uint8_t node_count;
+
+uint32_t requestTimer();
+void resetRequestTimer();
+void lastRequestNode(uint8_t node_id);
+uint8_t lastRequestNode();
 
 class Thing1 {
 public:
@@ -60,6 +66,13 @@ const int MAX_MESSAGE_SIZE = 100;
 void nodeId(uint8_t id);
 uint8_t nodeId();
 
+const uint8_t MAX_LORA_TX_POWER = 23;
+const uint8_t MIN_LORA_TX_POWER = 5;
+const uint8_t DEFAULT_LORA_TX_POWER = 17;
+
+uint8_t txPower(uint8_t node_id);
+void txPower(uint8_t node_id, uint8_t db);
+
 void readyToPost(uint8_t node_id);
 uint8_t readyToPost();
 
@@ -90,9 +103,10 @@ void handleDataMessage(uint8_t from_node, uint8_t *message, size_t msg_size);
 //void collector_onReceive(int packetSize);
 void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq);
 bool topologyTest(int config, int to, int from);
-int handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology=0);
+int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology=0);
 void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, uint8_t *message, uint8_t msg_size);
 void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size);
+void parseRoutingTable(char json[]);
 
 #endif
 
