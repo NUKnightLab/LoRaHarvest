@@ -8,7 +8,9 @@
 #ifdef ARDUINO
 #include <LoRa.h>
 #include <RTCZero.h>
+//#include <TaskScheduler.h>
 extern RTCZero rtcz;
+//Scheduler runner;
 #endif
 
 
@@ -33,6 +35,11 @@ public:
     int subtract (int a, int b);
 };
 
+void systemStartTime(uint32_t start_time);
+uint32_t systemStartTime();
+
+using timeSyncFcn = void(*)(uint32_t);
+int setTimeSyncFcn(timeSyncFcn the_function);
 const long frequency = 915E6; // Currently only supporting 915 MHz
 const int LORA_CS = 8; // chip select
 const int LORA_RST = 4; // reset
