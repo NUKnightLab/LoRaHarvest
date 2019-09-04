@@ -308,8 +308,9 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     if (packet_id == 0) packet_id = numBatches(MAX_MESSAGE_SIZE);
     //for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
     LoRa.idle();
-    LoRa.beginPacket();
     uint8_t to = reversedRoute[route_size-2];
+    LoRa.setTxPower(txPower(to));
+    LoRa.beginPacket();
     println("writing TO: %d", to);
     //LoRa.write(reversedRoute[route_size-2]);
     LoRa.write(to);
@@ -330,6 +331,7 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     char *batch = getBatch(packet_id - 1);
     LoRa.print(batch);
     LoRa.endPacket();
+    LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
     if (packet_id == 1) clearData(); // TODO: tunneled ack from collector before clearing
     LoRa.receive();
     #endif
@@ -340,8 +342,9 @@ void sendStandby(uint8_t seq, uint32_t next_collection)
     for (int i=0; i<sizeof(nodes); i++) {
         LoRa.flush();
         LoRa.idle();
-        LoRa.beginPacket();
         uint8_t to = routes[nodes[i]][1];
+        LoRa.setTxPower(txPower(to));
+        LoRa.beginPacket();
         //LoRa.write(routes[nodes[i]][1]);
         LoRa.write(to);
         LoRa.write(nodeId());
@@ -354,6 +357,7 @@ void sendStandby(uint8_t seq, uint32_t next_collection)
         LoRa.write(0); // end route
         LoRa.write(next_collection / 1000);
         LoRa.endPacket();
+        LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
         LoRa.receive();
     }
     //collectingNodeIndex(-1);
@@ -545,8 +549,9 @@ void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, 
     for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
     println("");
     LoRa.idle();
-    LoRa.beginPacket();
     uint8_t to = reversedRoute[route_size-2];
+    LoRa.setTxPower(txPower(to));
+    LoRa.beginPacket();
     println("writing TO: %d", to);
     LoRa.write(to);
     println("writing FROM: %d", nodeId());
@@ -570,6 +575,7 @@ void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, 
     println("RECEIVED REQUEST FOR ECHO");
     LoRa.write(message, msg_size);
     LoRa.endPacket();
+    LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
     println(".. DONE");
     LoRa.receive();
     println("RECEIVING");
@@ -580,13 +586,14 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
 {
     #ifdef ARDUINO
     LoRa.idle();
-    LoRa.beginPacket();
     int replyTo = 255;
     for (size_t i=0; i<route_size; i++) {
         if (route[i] == nodeId()) {
             replyTo = route[i+1];
         }
     }
+    LoRa.setTxPower(txPower(replyTo));
+    LoRa.beginPacket();
     //if (replyTo == 0) {
     //    println("ERROR: NO ROUTE!");
     //}
@@ -606,6 +613,7 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     LoRa.write(0);                        // end-route
     LoRa.write(message, msg_size); // message
     LoRa.endPacket();
+    LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
     LoRa.receive();
     #endif
 }
