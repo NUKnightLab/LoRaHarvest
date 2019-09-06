@@ -565,6 +565,8 @@ void onReceive(int packetSize)
 
 void setupLoRa(int csPin, int resetPin, int irqPin)
 {
+    println("Setting up LoRa RFM95 Radio with CS: %d; RST: %d; IRQ: %d",
+        csPin, resetPin, irqPin);
     LoRa.setPins(csPin, resetPin, irqPin);
     if (!LoRa.begin(frequency)) {
         println("LoRa init failed.");
