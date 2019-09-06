@@ -345,7 +345,7 @@ void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq)
         print("%d ", route[j]);
     }
     uint8_t to = route[1];
-    println("\nRoute size: %d; TX: ", route_size, txPower(to));
+    println("\nRoute size: %d; TX: %d", route_size, txPower(to));
     LoRa.setTxPower(txPower(to));
     LoRa.flush();
     LoRa.idle();
