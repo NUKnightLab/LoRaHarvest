@@ -631,6 +631,7 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
     Serial.println(LoRa.packetRssi());
     int rssi = LoRa.packetRssi();
     if (tx > 0) {
+        /*
         if (rssi < -100) {
             txPower(from, tx + 2);
         } else if (rssi < -90) {
@@ -642,6 +643,9 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
         } else {
             txPower(from, tx);
         }
+        */
+       if (rssi < -90) txPower(from, tx + 1);
+       if (rssi > -80) txPower(from, tx - 1);
     }
     Serial.print("Set TX(");
     Serial.print(from);
