@@ -123,7 +123,7 @@ int Thing2::subtract(int a, int b)
     return a - b;
 }
 
-uint8_t _node_id;
+uint8_t _node_id = 0;
 
 void nodeId(uint8_t id)
 {
