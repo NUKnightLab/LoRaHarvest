@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#define MAX_NODE_COUNT 20
+
 #ifdef ARDUINO
 #include <LoRa.h>
 #include <RTCZero.h>
@@ -14,7 +16,7 @@ extern RTCZero rtcz;
 #endif
 
 
-extern uint8_t nodes[20]; // TODO: max number of nodes supported?
+extern uint8_t nodes[MAX_NODE_COUNT];
 extern uint8_t routes[255][6];
 extern uint8_t node_count;
 

@@ -8,13 +8,12 @@
 RTCZero rtcz;
 #endif
 
-uint8_t nodes[20]; // TODO: max nodes allowed?
+uint8_t nodes[MAX_NODE_COUNT];
 uint8_t routes[255][6] = { { } };
 static uint8_t _tx_powers[255];
 uint8_t node_count = 0;
 static uint32_t _request_time = millis();
 uint8_t _last_request_node;
-
 
 uint8_t txPower(uint8_t node_id)
 {
@@ -28,7 +27,6 @@ void txPower(uint8_t node_id, uint8_t db)
     _tx_powers[node_id] = db;
 }
 
-
 uint32_t requestTimer()
 {
     return millis() - _request_time;
@@ -39,52 +37,42 @@ void resetRequestTimer()
     _request_time = millis();
 }
 
-//DynamicJsonDocument routing_table(255);
-
-
 void parseRoutingTable(char json[])
 {
     // TODO: calculate actual needed size
     StaticJsonDocument<1024> routing_table;
-    Serial.println("Parsing routing table from json ..");
+    println("Parsing routing table from json ..");
     DeserializationError error = deserializeJson(routing_table, json);
     JsonObject root = routing_table.as<JsonObject>();
     if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.c_str());
+        println("Failed to deserialize JSON: %s", error.c_str());
         while(1);
     } else {
-        Serial.println(".. done parsing json ..");
+        println(".. done parsing json");
         serializeJsonPretty(routing_table, Serial);
-        //for (JsonVariant value : routing_table["nodes"]) {
-        //    Serial.println(value["node_id"].as<int>);
-        //}
+        println("");
         JsonArray _nodes = root["nodes"].as<JsonArray>();
         for (JsonArray::iterator it=_nodes.begin(); it!=_nodes.end(); ++it) {
-            //Serial.println(it->as<JsonObject>()["node_id"]->as<uint8_t>());
-            Serial.print("- NODE ");
             JsonObject node = it->as<JsonObject>();
             uint8_t _id = node["node_id"];
             JsonArray _route = node["route"].as<JsonArray>();
             nodes[node_count++] = _id;
-            Serial.print(_id);
-            Serial.print(" ROUTE: ");
+            print(" -NODE %d. ROUTE: ", _id);
             uint8_t node_array_index = 0;
             for (JsonArray::iterator route_it=_route.begin(); route_it!=_route.end(); ++route_it) {
                 uint8_t _next = route_it->as<uint8_t>();
-                Serial.print(_next);
-                Serial.print(" ");
+                print("%d ", _next);
                 routes[_id][node_array_index++] = _next;
             }
             routes[_id][node_array_index] = 0;
-            Serial.println("");
+            println("");
         }
-        Serial.print("Parsed routes. Nodes: ");
+        print("Parsed routes. Nodes: ");
         for (uint8_t i=0; i<node_count; i++) {
-            Serial.print(nodes[i]);
-            Serial.print(" ");
+            print("%d ", nodes[i]);
             txPower(nodes[i], DEFAULT_LORA_TX_POWER);
         }
+        println("");
     }
 }
 
@@ -122,7 +110,6 @@ bool isCollector()
 {
     return _is_collector;
 }
-
 
 int Thing1::add(int a, int b)
 {
@@ -232,8 +219,6 @@ void standby(uint32_t timeout)
     #endif
 }
 
-// typedef void (*timeSyncFcn)(uint32_t);
-//using timeSyncFcn = void(*)(uint32_t);
 void (*time_sync_fcn)(uint32_t);
 
 int setTimeSyncFcn(timeSyncFcn the_function)
@@ -265,11 +250,6 @@ uint32_t timestamp()
     return 0;
 }
 
-//uint8_t battery_samples[255];
-//uint32_t battery_timestamps[255];
-//uint8_t battery_data_head = 0;
-//uint8_t battery_data_index = 0;
-
 void writeTimestamp()
 {
     uint32_t ts = rtcz.getEpoch();
@@ -279,7 +259,6 @@ void writeTimestamp()
     LoRa.write(ts >> 8);
     LoRa.write(ts);
 }
-
 
 unsigned long getTimestamp()
 {
@@ -297,22 +276,17 @@ void recordBattery()
     snprintf(data, bufsize, "{\"bat\":%3.2f,\"ts\":%lu}", getBatteryLevel(), getTimestamp());
     recordData(data, strlen(data));
     recordData((uint8_t)nearbyintf(getBatteryLevel() * 10));
-    //battery_samples[battery_data_index] = (uint8_t)nearbyintf(batteryLevel() * 10);
-    //battery_timestamps[battery_data_index] = timestamp();
-    //battery_data_index++;
 }
 
 void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
     if (packet_id == 0) packet_id = numBatches(MAX_MESSAGE_SIZE);
-    //for (uint8_t i=0; i<route_size; i++) print(" %d", reversedRoute[i]);
     LoRa.idle();
     uint8_t to = reversedRoute[route_size-2];
     LoRa.setTxPower(txPower(to));
     LoRa.beginPacket();
     println("writing TO: %d", to);
-    //LoRa.write(reversedRoute[route_size-2]);
     LoRa.write(to);
     LoRa.write(nodeId());
     LoRa.write(reversedRoute[0]);
@@ -327,25 +301,23 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     }
     LoRa.write(0); // end of route
     LoRa.write(packet_id);
-    //uint8_t msg_size = 0;
     char *batch = getBatch(packet_id - 1);
     LoRa.print(batch);
     LoRa.endPacket();
     LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
-    if (packet_id == 1) clearData(); // TODO: tunneled ack from collector before clearing
+    if (packet_id == 1) clearData();
     LoRa.receive();
     #endif
 }
 
 void sendStandby(uint8_t seq, uint32_t next_collection)
 {
-    for (int i=0; i<sizeof(nodes); i++) {
+    for (size_t i=0; i<sizeof(nodes); i++) {
         LoRa.flush();
         LoRa.idle();
         uint8_t to = routes[nodes[i]][1];
         LoRa.setTxPower(txPower(to));
         LoRa.beginPacket();
-        //LoRa.write(routes[nodes[i]][1]);
         LoRa.write(to);
         LoRa.write(nodeId());
         LoRa.write(nodes[i]);
@@ -360,35 +332,20 @@ void sendStandby(uint8_t seq, uint32_t next_collection)
         LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
         LoRa.receive();
     }
-    //collectingNodeIndex(-1);
-    //collectingPacketId(1);
-    //collectingData(false);
-    //waitingPacket(false);
 }
 
 void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq)
 {
-    //println("prefetch collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
-    //    collectingData(), waitingPacket(), collectingNodeIndex(), packet_id);
-    //waitingPacket(true);
-    //uint8_t node_id = nodes[collectingNodeIndex()];
     println("Sending collect packet NODE: %d; PACKET: %d", node_id, packet_id);
     uint8_t *route = routes[node_id];
     uint8_t route_size = 0;
     while (route_size < sizeof(route) && route[route_size] > 0) route_size++;
-    Serial.print("Fetching data from: ");
-    Serial.print(node_id);
-    Serial.print("; ROUTE: ");
+    print("Fetching data from: %d; ROUTE: ", node_id);
     for (int j=0; j<route_size; j++) {
-        Serial.print(route[j]);
-        Serial.print(" ");
+        print("%d ", route[j]);
     }
-    Serial.println("");
-    Serial.print("Route size: ");
-    Serial.println(route_size);
-    Serial.print("TX: ");
     uint8_t to = route[1];
-    Serial.println(txPower(to));
+    println("\nRoute size: %d; TX: ", route_size, txPower(to));
     LoRa.setTxPower(txPower(to));
     LoRa.flush();
     LoRa.idle();
@@ -398,19 +355,15 @@ void sendCollectPacket(uint8_t node_id, uint8_t packet_id, uint8_t seq)
     LoRa.write(node_id);
     LoRa.write(seq);
     LoRa.write(txPower(to));
-    //LoRa.write(PACKET_TYPE_SENDDATA);
     LoRa.write(1);
     writeTimestamp();
     LoRa.write(route, route_size);
     LoRa.write(0); // end route
-    Serial.print("REQUESTING PACKET ID: ");
-    Serial.println(packet_id);
+    println("REQUESTING PACKET ID: %d", packet_id);
     LoRa.write(packet_id); // packet id
     LoRa.endPacket();
     LoRa.setTxPower(DEFAULT_LORA_TX_POWER);
-    //timeout = millis() + 10000;
-    //println("set timeout to: %d", timeout);
-    Serial.println("RECEIVING ...");
+    println("RECEIVING ...");
     LoRa.receive();
 }
 
@@ -418,16 +371,12 @@ void handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t 
 {
     if (isCollector()) {
         uint8_t packet_id = message[0];
-        static uint8_t nodes_collected[255] = {0};
         print("NODE: %d; PACKET: %d; MESSAGE:", from_node, packet_id);
         for (uint8_t i=1; i<msg_size; i++) {
-            //print(" %f", (float)message[i] / 10.0);
             print("%c", message[i]);
         }
         recordData((char*)(&message[1]), msg_size-1);
-        println("");
-        char *batch = getCurrentBatch();
-        println("Got current batch");
+        println("\nGot current batch");
         if (packet_id == 1) { // TODO: be sure we received all available packets
             println("Packet ID is 1");
             readyToPost(from_node);
@@ -442,105 +391,19 @@ void handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t 
         if (collectingPacketId() == 0) collectingPacketId(message[0]);
         print("NODE: %d; PACKET: %d; MESSAGE:", from_node, message[0]);
         for (uint8_t i=1; i<msg_size; i++) {
-            //print(" %f", (float)message[i] / 10.0);
             print("%c", message[i]);
         }
         recordData((char*)(&message[1]), msg_size-1);
         println("");
         char *batch = getCurrentBatch();
         println("** CURRENT BATCH:");
-        for (int i=0; i<strlen(batch); i++) print("%c", batch[i]);
+        for (size_t i=0; i<strlen(batch); i++) print("%c", batch[i]);
         println("");
         waitingPacket(false);
         println("collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
             collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());
     }
 }
-
-/*
-void collector_handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t msg_size)
-{
-    uint8_t packet_id = message[0];
-    static uint8_t nodes_collected[255] = {0};
-    print("NODE: %d; PACKET: %d; MESSAGE:", from_node, packet_id);
-    for (uint8_t i=1; i<msg_size; i++) {
-        //print(" %f", (float)message[i] / 10.0);
-        print("%c", message[i]);
-    }
-    recordData((char*)(&message[1]), msg_size-1);
-    println("");
-    char *batch = getCurrentBatch();
-    println("Got current batch");
-    if (packet_id == 1) { // TODO: be sure we received all available packets
-        println("Packet ID is 1");
-        readyToPost(from_node);
-    } else {
-        println("Packet ID is not 1");
-        sendCollectPacket(from_node, --packet_id, seq);
-    }
-}
-*/
-
-/*
-int collector_handlePacket(int to, int from, int dest, int seq, int packetType, uint32_t timestamp, uint8_t *route, size_t route_size, uint8_t *message, size_t msg_size, int topology)
-{
-    static int last_seq = 0;
-    if (seq == last_seq) {
-        return 1;
-        //return MESSAGE_CODE_DUPLICATE_SEQUENCE;
-    }
-    println("Collector handle data packet to: %d; nodeId: %d", to, nodeId());
-    if (to != nodeId() && to != 255) return 2;
-    //if (to != config.node_id && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
-    //if (to != nodeId() && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
-    //if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
-    last_seq = seq;
-    uint8_t packet_id;
-    if (dest == nodeId()) {
-        switch (packetType) {
-            //case PACKET_TYPE_SENDDATA:
-            //    packet_id = message[0];
-            //    rtcz.setEpoch(timestamp);
-            //    sendDataPacket(packet_id, ++last_seq, route, route_size); // TODO: get packet # request from message
-            //    return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
-            //case PACKET_TYPE_DATA:
-            case 2:
-                collector_handleDataMessage(route[0], ++++seq, message, msg_size);
-                return 5;
-                //return MESSAGE_CODE_RECEIVED_DATA_PACKET;
-            //case PACKET_TYPE_STANDBY:
-            //    standby(message[0]); // up to 255 seconds. TODO, use 2 bytes for longer timeouts
-            //    return MESSAGE_CODE_STANDBY;
-            //case PACKET_TYPE_ECHO:
-            //    if (!isCollector) {
-            //        handleEchoMessage(++last_seq, route, route_size, message, msg_size);
-            //    } else {
-            //        println("MESSAGE:");
-            //        for (uint8_t i=0; i<msg_size; i++) {
-            //            print("%d ", message[i]);
-            //        }
-            //        println("");
-            //    }
-        }
-    } else if (dest == 255) { // broadcast message
-        //switch (packetType) {
-        //    case PACKET_TYPE_STANDBY:
-        //        if (!isCollector) {
-        //            println("REC'd BROADCAST STANDBY FOR: %d", message[0]);
-        //            routeMessage(255, last_seq, PACKET_TYPE_STANDBY, route, route_size, message, msg_size);
-        //            standby(message[0]);
-        //        }
-        //        return MESSAGE_CODE_STANDBY;
-        //}
-    } else { // route this message
-        //routeMessage(dest, last_seq, packetType, route, route_size, message, msg_size);
-        //return MESSAGE_CODE_ROUTED;
-    }
-    //return MESSAGE_CODE_NONE;
-    return 0;
-}
-*/
-
 
 void handleEchoMessage(uint8_t seq, uint8_t *reversedRoute, uint8_t route_size, uint8_t *message, uint8_t msg_size)
 {
@@ -594,10 +457,6 @@ void routeMessage(int dest, int seq, int packetType, uint8_t *route, size_t rout
     }
     LoRa.setTxPower(txPower(replyTo));
     LoRa.beginPacket();
-    //if (replyTo == 0) {
-    //    println("ERROR: NO ROUTE!");
-    //}
-    /* 6 bytes + route size + message size */
     LoRa.write(replyTo);                  // to
     LoRa.write(nodeId());                  // from
     LoRa.write(dest);                     // dest
@@ -626,56 +485,26 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
         return MESSAGE_CODE_DUPLICATE_SEQUENCE;
     }
     if (to != nodeId() && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
-
-    Serial.print("REC'D RSSI: ");
-    Serial.println(LoRa.packetRssi());
+    println("REC'D RSSI: %d", LoRa.packetRssi());
     int rssi = LoRa.packetRssi();
     if (tx > 0) {
-        /*
-        if (rssi < -100) {
-            txPower(from, tx + 2);
-        } else if (rssi < -90) {
-            txPower(from, tx + 1);
-        } else if (rssi > -70) {
-            txPower(from, tx-2);
-        } else if (rssi > -80) {
-            txPower(from, tx-1);
-        } else {
-            txPower(from, tx);
-        }
-        */
        if (rssi < -90) txPower(from, tx + 1);
        if (rssi > -80) txPower(from, tx - 1);
     }
-    Serial.print("Set TX(");
-    Serial.print(from);
-    Serial.print(") = ");
-    Serial.println(txPower(from));
-    Serial.println("*****");
+    println("Set TX(%d) = %d", from, txPower(from));
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
     uint8_t packet_id;
-    uint32_t uptime;
     if (dest == nodeId()) {
         switch (packetType) {
             case PACKET_TYPE_SENDDATA:
                 packet_id = message[0];
                 /* sync time with upstream requests */
                 time_sync_fcn(timestamp);
-                //uptime = rtcz.getEpoch() - systemStartTime();
-                //rtcz.setEpoch(timestamp);
-                //systemStartTime(timestamp - uptime);
                 sendDataPacket(packet_id, ++last_seq, route, route_size); // TODO: get packet # request from message
                 return MESSAGE_CODE_SENT_NEXT_DATA_PACKET;
             case PACKET_TYPE_DATA:
                 handleDataMessage(route[0], ++++seq, message, msg_size);
-                /*
-                if (isCollector()) {
-                    collector_handleDataMessage(route[0], ++++seq, message, msg_size);
-                } else {
-                    handleDataMessage(route[0], message, msg_size);
-                }
-                */
                 return MESSAGE_CODE_RECEIVED_DATA_PACKET;
             case PACKET_TYPE_STANDBY:
                 standby(message[0]); // up to 255 seconds. TODO, use 2 bytes for longer timeouts
@@ -710,40 +539,6 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
 
 #ifdef ARDUINO
 
-
-/*
-void collector_onReceive(int packetSize)
-{
-    static uint8_t route_buffer[MAX_ROUTE_SIZE];
-    static uint8_t msg_buffer[255];
-    int to = LoRa.read();
-    if (to != nodeId()) return;
-    int from = LoRa.read();
-    int dest = LoRa.read();
-    int seq = LoRa.read();
-    int type = LoRa.read();
-    uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
-    size_t route_idx_ = 0;
-    size_t msg_idx_ = 0;
-    print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %u",
-        to, from, dest, seq, type, LoRa.packetRssi(), ts);
-    print("; ROUTE:");
-    while (LoRa.available()) {
-        uint8_t node = LoRa.read();
-        if (node == 0) break;
-        route_buffer[route_idx_++] = node;
-        print(" %d", route_buffer[route_idx_-1]);
-    }
-    println("");
-    println("SNR: %f; FRQERR: %f", LoRa.packetSnr(), LoRa.packetFrequencyError());
-    while (LoRa.available()) {
-        msg_buffer[msg_idx_++] = LoRa.read();
-    }
-    //collector_handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
-    handlePacket(to, from, dest, seq, type, ts, route_buffer, route_idx_, msg_buffer, msg_idx_, 0);
-}
-*/
-
 void onReceive(int packetSize)
 {
     static uint8_t route_buffer[MAX_ROUTE_SIZE];
@@ -757,17 +552,11 @@ void onReceive(int packetSize)
     uint32_t ts = LoRa.read() << 24 | LoRa.read() << 16 | LoRa.read() << 8 | LoRa.read();
     size_t route_idx_ = 0;
     size_t msg_idx_ = 0;
-    //print("REC'D: TO: %d; FROM: %d; DEST: %d; SEQ: %d; TYPE: %d; RSSI: %d; ts: %u",
-    //    to, from, dest, seq, type, LoRa.packetRssi(), ts);
-    //print("; ROUTE:");
     while (LoRa.available()) {
         uint8_t node = LoRa.read();
         if (node == 0) break;
         route_buffer[route_idx_++] = node;
-        //print(" %d", route_buffer[route_idx_-1]);
     }
-    //println("");
-    //println("SNR: %f; FRQERR: %f", LoRa.packetSnr(), LoRa.packetFrequencyError());
     while (LoRa.available()) {
         msg_buffer[msg_idx_++] = LoRa.read();
     }
