@@ -4,6 +4,14 @@
 #include <DataManager.h>
 #include <ArduinoJson.h>
 
+#define RH_RF95_PA_SELECT 0x80
+#define RH_RF95_PA_DAC_ENABLE 0x07
+#define RH_RF95_PA_DAC_DISABLE 0x04
+#define RH_RF95_REG_09_PA_CONFIG 0x09
+#define RH_SPI_WRITE_MASK 0x80
+#define RH_RF95_REG_4D_PA_DAC 0x4d
+#define RH_RF95_MAX_POWER 0x70
+
 #ifdef ARDUINO
 RTCZero rtcz;
 #endif
@@ -14,6 +22,7 @@ static uint8_t _tx_powers[255];
 uint8_t node_count = 0;
 static uint32_t _request_time = millis();
 uint8_t _last_request_node;
+
 
 uint8_t txPower(uint8_t node_id)
 {
@@ -485,11 +494,30 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
         return MESSAGE_CODE_DUPLICATE_SEQUENCE;
     }
     if (to != nodeId() && to != 255) return MESSAGE_CODE_WRONG_ADDRESS;
-    println("REC'D RSSI: %d", LoRa.packetRssi());
+
+    /**
+     * arduino-LoRa has hard-coded some assumptions that do not give us the correct values for calculating
+     * packet signal strength. The hard-coded 0.25 slope adjustment on SNR only applies for SNR < 0. When
+     * calculating packet strength, we should use a 16/15 slope for SNR >=0. Also, specific to the HopeRF
+     * module, we replace the -157 RSSI adjustment with -137.
+     * See 5.5.5 of the Semtech datasheet (https://www.mouser.com/ds/2/761/sx1276-1278113.pdf)
+     * and 5.5.5 of the HopeRF datasheet(https://cdn-learn.adafruit.com/assets/assets/000/031/659/original/RFM95_96_97_98W.pdf?1460518717)
+     * 
+     * Note: there is some indication parts of this might get fixed (thus breaking this code). Watch this issue:
+     * https://github.com/sandeepmistry/arduino-LoRa/issues/267
+     */
+    float packet_strength;
+    if (LoRa.packetSnr() < 0) {
+        packet_strength = LoRa.packetRssi() + 157 - 137 + LoRa.packetSnr();
+    } else {
+        packet_strength = LoRa.packetRssi() + 157 - 137 + ((LoRa.packetSnr() / 0.25) * (16 / 15));
+    }
+    println("REC'D RSSI: %d; SNR: %f; PKTSTR: %f", LoRa.packetRssi(), LoRa.packetSnr(), packet_strength);
+
     int rssi = LoRa.packetRssi();
     if (tx > 0) {
-       if (rssi < -90) txPower(from, tx + 1);
-       if (rssi > -80) txPower(from, tx - 1);
+       if (packet_strength < -90) txPower(from, tx + 1);
+       if (packet_strength > -80) txPower(from, tx - 1);
     }
     println("Set TX(%d) = %d", from, txPower(from));
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
