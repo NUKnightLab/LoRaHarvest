@@ -499,27 +499,51 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
      * arduino-LoRa has hard-coded some assumptions that do not give us the correct values for calculating
      * packet signal strength. The hard-coded 0.25 slope adjustment on SNR only applies for SNR < 0. When
      * calculating packet strength, we should use a 16/15 slope for SNR >=0. Also, specific to the HopeRF
-     * module, we replace the -157 RSSI adjustment with -137.
+     * module, we replace the -157 RSSI adjustment with -137. (This seems to have changed in the new HopeRF
+     * datasheet, so sticking with -157 offset for now).
      * See 5.5.5 of the Semtech datasheet (https://www.mouser.com/ds/2/761/sx1276-1278113.pdf)
      * and 5.5.5 of the HopeRF datasheet(https://cdn-learn.adafruit.com/assets/assets/000/031/659/original/RFM95_96_97_98W.pdf?1460518717)
+     * HopeRF datasheet v2.0 https://www.hoperf.com/data/upload/portal/20190730/RFM95W-V2.0.pdf
      * 
      * Note: there is some indication parts of this might get fixed (thus breaking this code). Watch this issue:
      * https://github.com/sandeepmistry/arduino-LoRa/issues/267
      */
-    float packet_strength;
-    if (LoRa.packetSnr() < 0) {
-        //packet_strength = LoRa.packetRssi() + 157 - 137 + LoRa.packetSnr();
-        packet_strength = LoRa.packetRssi() + LoRa.packetSnr();
-    } else {
-        //packet_strength = LoRa.packetRssi() + 157 - 137 + ((LoRa.packetSnr() / 0.25) * (16 / 15));
-        packet_strength = LoRa.packetRssi() + (LoRa.packetRssi() * (16 / 15));
-    }
-    println("REC'D RSSI: %d; SNR: %f; PKTSTR: %f", LoRa.packetRssi(), LoRa.packetSnr(), packet_strength);
 
-    int rssi = LoRa.packetRssi();
+    /**
+     * Code modelled after RadioHead 1.94 RH_RF95.cpp
+     * 
+     * Note, this is high-frequency specific (-157 offset vs. -164 for _frequency < 868E6)
+     */
+    int packet_strength;
+    int rssi = LoRa.packetRssi() + 157;
+    int snr = (int)LoRa.packetSnr();
+    if (snr < 0) {
+        packet_strength = rssi + snr;
+    } else {
+        packet_strength = (int)rssi * (16 / 15);
+    }
+    packet_strength -= 157; // high-frequency offset. See datasheet
+    println("REC'D RSSI: %d; SNR: %d; PKTSTR: %d", rssi, snr, packet_strength);
     if (tx > 0) {
-       if (packet_strength < -90) txPower(from, tx + 1);
-       if (packet_strength > -80) txPower(from, tx - 1);
+       if (packet_strength < -90) {
+           if (snr <= -10) {
+               txPower(from, tx + 2);
+           } else {
+               txPower(from, tx + 1);
+           }
+       } else if (packet_strength > -80) {
+           if (snr >= 5) {
+               txPower(from, tx - 2);
+           } else {
+               txPower(from, tx - 1);
+           }
+       } else {
+           if (snr <= -10) {
+               txPower(from , tx + 1);
+           } else if (snr >= 5) {
+               txPower(from, tx - 1);
+           }
+       }
     }
     println("Set TX(%d) = %d", from, txPower(from));
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
