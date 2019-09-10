@@ -508,9 +508,11 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
      */
     float packet_strength;
     if (LoRa.packetSnr() < 0) {
-        packet_strength = LoRa.packetRssi() + 157 - 137 + LoRa.packetSnr();
+        //packet_strength = LoRa.packetRssi() + 157 - 137 + LoRa.packetSnr();
+        packet_strength = LoRa.packetRssi() + LoRa.packetSnr();
     } else {
-        packet_strength = LoRa.packetRssi() + 157 - 137 + ((LoRa.packetSnr() / 0.25) * (16 / 15));
+        //packet_strength = LoRa.packetRssi() + 157 - 137 + ((LoRa.packetSnr() / 0.25) * (16 / 15));
+        packet_strength = LoRa.packetRssi() + (LoRa.packetRssi() * (16 / 15));
     }
     println("REC'D RSSI: %d; SNR: %f; PKTSTR: %f", LoRa.packetRssi(), LoRa.packetSnr(), packet_strength);
 
