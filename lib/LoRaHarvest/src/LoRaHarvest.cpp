@@ -526,17 +526,19 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
     println("REC'D RSSI: %d; SNR: %d; PKTSTR: %d", rssi, snr, packet_strength);
     if (tx > 0) {
        if (packet_strength < -110) {
-           if (snr <= -10) {
-               txPower(from, tx + 2);
-           } else {
-               txPower(from, tx + 1);
-           }
+           txPower(from, tx + 1);
+           //if (snr <= -10) {
+           //    txPower(from, tx + 2);
+           //} else {
+           //    txPower(from, tx + 1);
+           //}
        } else if (packet_strength > -100) {
-           if (snr >= 5) {
-               txPower(from, tx - 2);
-           } else {
-               txPower(from, tx - 1);
-           }
+           txPower(from, tx - 1);
+           //if (snr >= 5) {
+           //    txPower(from, tx - 2);
+           //} else {
+           //    txPower(from, tx - 1);
+           //}
        } else {
            if (snr <= -10) {
                txPower(from , tx + 1);
@@ -545,6 +547,7 @@ int handlePacket(int to, int from, int dest, int seq, int tx, int packetType, ui
            }
        }
     }
+    //txPower(from, txPower(from)+1);
     println("Set TX(%d) = %d", from, txPower(from));
     if (!topologyTest(topology, to, from)) return MESSAGE_CODE_TOPOLOGY_FAIL;
     last_seq = seq;
