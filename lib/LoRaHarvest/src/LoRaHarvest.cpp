@@ -290,7 +290,7 @@ void recordBattery()
 void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t route_size)
 {
     #ifdef ARDUINO
-    if (packet_id == 0) packet_id = numBatches(MAX_MESSAGE_SIZE);
+    //if (packet_id == 0) packet_id = numBatches(MAX_MESSAGE_SIZE);
     LoRa.idle();
     uint8_t to = reversedRoute[route_size-2];
     LoRa.setTxPower(txPower(to), PA_OUTPUT_PA_BOOST_PIN);
@@ -310,11 +310,12 @@ void sendDataPacket(uint8_t packet_id, int seq, uint8_t *reversedRoute, size_t r
     }
     LoRa.write(0); // end of route
     LoRa.write(packet_id);
-    char *batch = getBatch(packet_id - 1);
+    //char *batch = getBatch(packet_id - 1);
+    char *batch = getBatch(packet_id);
     LoRa.print(batch);
     LoRa.endPacket();
     LoRa.setTxPower(DEFAULT_LORA_TX_POWER, PA_OUTPUT_PA_BOOST_PIN);
-    if (packet_id == 1) clearData();
+    //if (packet_id == 1) clearData();
     LoRa.receive();
     #endif
 }
@@ -380,22 +381,41 @@ void handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t 
 {
     if (isCollector()) {
         uint8_t packet_id = message[0];
-        print("NODE: %d; PACKET: %d; MESSAGE:", from_node, packet_id);
+        print("NODE: %d; PACKET: %d; MSG_SIZE: %d; MESSAGE: ", from_node, packet_id, msg_size);
         for (uint8_t i=1; i<msg_size; i++) {
             print("%c", message[i]);
         }
-        recordData((char*)(&message[1]), msg_size-1);
-        println("\nGot current batch");
+        println("");
+        if (msg_size <= 1) {
+            println("Received empty data message. Ready to post");
+            readyToPost(from_node);
+        } else {
+            println("Recording data and requesting next packet ...");
+            recordData((char*)(&message[1]), msg_size-1);
+            println(".. Recorded data:");
+            Serial.println(peekLastRecord().data);
+            sendCollectPacket(from_node, ++packet_id, seq);
+            lastRequestNode(from_node);
+            resetRequestTimer();
+        }
+
+        /*
         if (packet_id == 1) { // TODO: be sure we received all available packets
             println("Packet ID is 1");
             readyToPost(from_node);
         } else {
             println("Packet ID is not 1");
-            sendCollectPacket(from_node, --packet_id, seq);
+            //sendCollectPacket(from_node, --packet_id, seq);
+            sendCollectPacket(from_node, ++packet_id, seq);
             lastRequestNode(from_node);
             resetRequestTimer();
         }
+        */
+
     } else {
+        Serial.println("Data packet received by non-collector. Why are we here?");
+        while(1);
+        /*
         println("Collecting packet: %d", collectingPacketId());
         if (collectingPacketId() == 0) collectingPacketId(message[0]);
         print("NODE: %d; PACKET: %d; MESSAGE:", from_node, message[0]);
@@ -411,6 +431,7 @@ void handleDataMessage(uint8_t from_node, uint8_t seq, uint8_t *message, size_t 
         waitingPacket(false);
         println("collection state: collecting: %d, waiting: %d, node idx: %d, packet: %d",
             collectingData(), waitingPacket(), collectingNodeIndex(), collectingPacketId());
+        */
     }
 }
 

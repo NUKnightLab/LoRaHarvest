@@ -16,4 +16,18 @@ uint8_t *getBatch(uint8_t batch_no, uint8_t *batch_size);
 char *getBatch(uint8_t index);
 char *getCurrentBatch();
 
+struct DataRecord {
+    uint8_t id;
+    uint8_t len;
+    char data[BATCH_SIZE];
+};
+//extern std::queue<DataRecord> records;
+size_t getRecordCount();
+DataRecord getNextRecord();
+DataRecord peekFirstRecord();
+DataRecord peekLastRecord();
+
+//extern struct DataRecord;
+//extern std::queue<DataRecord> records;
+
 #endif
